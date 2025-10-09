@@ -1,0 +1,23 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>{% block title %}Arrebita{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Montserrat:wght@400;600&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/arrebita.css' %}">
+</head>
+<body class="theme-arrebita">
+{% include "includes/navbar.html" %}
+<main id="content">{% block content %}{% endblock %}</main>
+{% include "includes/footer.html" %}
+<script>
+    // Fade-in on scroll
+    const obs = new IntersectionObserver((es) => es.forEach(e => e.isIntersecting && e.target.classList.add('reveal')), {threshold: .15});
+    document.querySelectorAll('.will-reveal').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
+ 

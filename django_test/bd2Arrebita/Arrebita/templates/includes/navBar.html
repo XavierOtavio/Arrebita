@@ -1,0 +1,22 @@
+{% load static %}
+<header class="site-header">
+    <div class="container nav-wrap">
+        <a class="brand" href="/django_test/bd2Arrebita/Static">
+            <img src="{% static 'img/logo.svg' %}" alt="Arrebita" />
+        </a>
+        <nav class="main-nav">
+            <a href="/django_test/bd2Arrebita/Static" class="nav-link active">Home</a>
+            <a href="/winelist" class="nav-link">Vinhos</a>
+            <a href="/events" class="nav-link">Eventos</a>
+            <a href="/comunidade" class="nav-link">Comunidade</a>
+            <a href="/perfil" class="nav-link">Perfil</a>
+        </nav>
+        <button class="nav-toggle" aria-label="Abrir menu">&#9776;</button>
+    </div>
+</header>
+<script>
+    const btn=document.querySelector('.nav-toggle');
+    const nav=document.querySelector('.main-nav');
+    btn?.addEventListener('click',()=>nav.classList.toggle('open'));
+</script>
+ 
