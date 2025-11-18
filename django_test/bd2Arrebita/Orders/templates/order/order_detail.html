@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Detalhes da Ordem</title>
+</head>
+<body>
+<h1>Detalhes da Ordem #{{ order.order_id }}</h1>
+<p><strong>Order Number:</strong> {{ order.order_number }}</p>
+<p><strong>Status:</strong> {{ order.status }}</p>
+<p><strong>Billing Name:</strong> {{ order.billing_name }}</p>
+<p><strong>Billing NIF:</strong> {{ order.billing_nif }}</p>
+<p><strong>Billing Address:</strong> {{ order.billing_address }}</p>
+<p><strong>Created At:</strong> {{ order.created_at }}</p>
+<p><strong>Updated At:</strong> {{ order.updated_at }}</p>
+<a href="{% url 'update_order' order.id %}">Editar</a>
+</body>
+</html>
