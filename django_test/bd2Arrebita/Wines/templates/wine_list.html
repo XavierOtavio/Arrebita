@@ -1,0 +1,164 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Vinhos • Arrebita</title>
+
+    <link rel="stylesheet" href="{% static 'css/arrebita.css' %}">
+    <link rel="stylesheet" href="{% static 'css/wine-list.css' %}">
+</head>
+<body class="wl-body">
+<header class="wl-topbar">
+    <div class="wl-topbar-inner">
+        <a class="wl-brand" href="/">ARREBITA</a>
+        <nav class="wl-nav">
+            <a href="/">Home</a>
+            <a class="is-active" href="{% url 'wine:winelist' %}">Vinhos</a>
+            <a href="#">Eventos</a>
+            <a href="#">Comunidade</a>
+            <a href="#">Perfil</a>
+        </nav>
+    </div>
+</header>
+
+<main class="wl-container">
+    <h1 class="wl-title">Vinhos</h1>
+
+    <div class="wl-layout">
+        <!-- ============ SIDEBAR ============ -->
+        <aside class="wl-filters">
+            <form method="get" class="wl-filter-form">
+                {% if request.GET.sort %}
+                    <input type="hidden" name="sort" value="{{ request.GET.sort }}">
+                {% endif %}
+
+                <label class="wl-search">
+                    <input type="search" name="q" placeholder="Pesquisar vinhos ou casta" value="{{ request.GET.q|default_if_none:'' }}">
+                    <button type="submit" class="btn btn-ghost">Pesquisar</button>
+                </label>
+
+                <div class="wl-filter-group">
+                    <h3 class="wl-filter-title">Ordenar por</h3>
+                    <select name="sort" class="wl-select" onchange="this.form.submit()">
+                        <option value="">Ordenar por</option>
+                        <option value="name" {% if request.GET.sort == 'name' %}selected{% endif %}>Nome (A–Z)</option>
+                        <option value="-name" {% if request.GET.sort == '-name' %}selected{% endif %}>Nome (Z–A)</option>
+                        <option value="price" {% if request.GET.sort == 'price' %}selected{% endif %}>Preço ↑</option>
+                        <option value="-price" {% if request.GET.sort == '-price' %}selected{% endif %}>Preço ↓</option>
+                        <option value="-created_at" {% if request.GET.sort == '-created_at' %}selected{% endif %}>Mais recentes</option>
+                        {% if has_rating_field %}
+                            <option value="{{ rating_sort_key }}" {% if request.GET.sort == rating_sort_key %}selected{% endif %}>Melhor avaliação</option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="wl-filter-group">
+                    <h3 class="wl-filter-title">Tipo</h3>
+                    {% for t in wine_types %}
+                        <label class="wl-check">
+                            <input type="checkbox" name="type" value="{{ t.type_id }}" {% if t.type_id|stringformat:'s' in selected_types %}checked{% endif %}>
+                            <span>{{ t.name|title }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+
+                <div class="wl-filter-group">
+                    <h3 class="wl-filter-title">Preço</h3>
+                    <div class="wl-price">
+                        <input type="number" min="0" step="0.5" name="min" placeholder="mín." value="{{ request.GET.min }}">
+                        <span class="wl-price-sep">—</span>
+                        <input type="number" min="0" step="0.5" name="max" placeholder="máx." value="{{ request.GET.max }}">
+                    </div>
+                </div>
+
+                <div class="wl-filter-group">
+                    <h3 class="wl-filter-title">Classificação</h3>
+                    <div class="wl-radios">
+                        {% for r in rating_options %}
+                            <label class="wl-radio">
+                                <input type="radio" name="rating" value="{{ r }}" {% if request.GET.rating == r|stringformat:'s' %}checked{% endif %}>
+                                <span class="stars" aria-label="{{ r }} estrelas">
+                  {% for _ in '12345' %}
+                      <i class="star{% if forloop.counter <= r %} is-on{% endif %}">★</i>
+                  {% endfor %}
+                </span>
+                            </label>
+                        {% endfor %}
+                        <label class="wl-radio">
+                            <input type="radio" name="rating" value="" {% if not request.GET.rating %}checked{% endif %}>
+                            <span>Qualquer</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary wl-apply" type="submit">Aplicar filtros</button>
+                <a href="{% url 'wine:winelist' %}" class="wl-clear">Limpar tudo</a>
+            </form>
+        </aside>
+
+        <!-- ============ LISTA ============ -->
+        <section class="wl-results">
+            {% if wines %}
+                <div class="wl-grid">
+                    {% for wine in wines %}
+                        <article class="wl-card">
+                            {% load static %}
+                            <a class="wl-card-media" href="#">
+                                <img src="{% static 'img/arrebita_tinto.png' %}" alt="{{ wine.name }}">
+                            </a>
+
+                            <div class="wl-card-body">
+                                <h3 class="wl-card-title">{{ wine.name }}</h3>
+
+                                <div class="wl-badges">
+                                    {% if wine.type_label %}<span class="badge">{{ wine.type_label|title }}</span>{% endif %}
+                                    {% if wine.region %}<span class="badge">{{ wine.region }}</span>{% endif %}
+                                    {% if wine.vintage_year %}<span class="badge">{{ wine.vintage_year }}</span>{% endif %}
+                                </div>
+
+
+                                <div class="wl-meta">
+                                    <div class="stars" aria-label="{{ wine.rating_safe }} estrelas">
+                                        {% for _ in '12345' %}
+                                            <i class="star{% if forloop.counter <= wine.rating_safe %} is-on{% endif %}">★</i>
+                                        {% endfor %}
+                                    </div>
+                                    <div class="wl-price-tag">€ {{ wine.price|floatformat:2 }}</div>
+                                </div>
+
+                                <form class="wl-card-actions">
+                                    <button class="btn btn-primary btn-block" type="button">Adicionar ao Carrinho</button>
+                                </form>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+
+                {% if is_paginated %}
+                    <nav class="wl-pagination">
+                        {% if page_obj.has_previous %}
+                            <a class="wl-page" href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Anterior</a>
+                        {% endif %}
+                        <span class="wl-page is-current">Página {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                        {% if page_obj.has_next %}
+                            <a class="wl-page" href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Seguinte</a>
+                        {% endif %}
+                    </nav>
+                {% endif %}
+            {% else %}
+                <p class="wl-empty">Não foram encontrados vinhos para os filtros aplicados.</p>
+            {% endif %}
+        </section>
+    </div>
+</main>
+<script>
+    document.addEventListener("change", function (e) {
+        if (e.target.matches('input[name="rating"]')) {
+            e.target.form.submit();
+        }
+    });
+</script>
+</body>
+</html>
