@@ -18,7 +18,7 @@
         <div class="card-grid">
             {% for d in destaques %}
             <article class="card">
-                <img src="{% static d.img %}" alt="{{ d.titulo }}">
+                <img class="card-img" src="{% static d.img %}" alt="{{ d.titulo }}">
                 <div class="card-body">
                     <span class="pill">{{ d.tipo }}</span>
                     <h3>{{ d.titulo }}</h3>

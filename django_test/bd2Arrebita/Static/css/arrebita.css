@@ -79,7 +79,7 @@ a:hover {
 }
 
 .brand img {
-    height: 28px
+    height: 40px
 }
 
 
@@ -374,6 +374,12 @@ body{background:var(--bg)}
     }
 }
 
+.card-img{
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    width: 100%
+}
+
 .post {
     background: #12141a;
     border: 1px solid #252834;
@@ -432,8 +438,8 @@ body{background:var(--bg)}
 }
 
 .footer-logo {
-    height: 26px;
-    margin-bottom: 8px
+    height: 100px;
+    /*margin-bottom: 8px*/
 }
 
 .tagline {
