@@ -8,9 +8,9 @@ def home(request):
         {"tipo": "Eventos", "titulo": "Noite Arrebita", "img": "img/a3.png", "cta":"Saber mais"},
     ]
     feed = [
-        {"user":"@rita", "avatar":"img/u1.jpg", "texto":"Este Merlot… ui! 🔥", "rating":5, "img":"img/c4.jpg"},
-        {"user":"@tiago", "avatar":"img/u2.jpg", "texto":"Tinto sedutor, corpo e final longo.", "rating":4, "img":"img/c10.jpg"},
-        {"user":"@tatiana", "avatar":"img/u3.jpg", "texto":"Rosé travesso — leve e divertido 😜", "rating":4, "img":"img/c6.jpg"},
+        {"user":"@colaco", "avatar":"img/u4.jpg", "texto":"Este Merlot… ui! 🔥", "rating":5, "img":"img/c5.jpg"},
+        {"user":"@joao", "avatar":"img/u6.jpg", "texto":"Tinto sedutor, corpo e final longo.", "rating":4, "img":"img/c10.jpg"},
+        {"user":"@pires", "avatar":"img/u2.jpg", "texto":"Rosé travesso — leve e divertido 😜", "rating":4, "img":"img/c7.jpg"},
     ]
     return render(request, "home.html", {"destaques": destaques, "feed": feed})
 

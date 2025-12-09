@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'Events',
     'Orders',
     'Statistics',
+    'Backoffice',
 
 
 ]

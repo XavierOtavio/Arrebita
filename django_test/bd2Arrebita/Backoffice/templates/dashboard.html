@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static '/css/backoffice.css' %}">
+
+<section class="bo-wrapper">
+    <header class="bo-header">
+        <div>
+            <h1>Backoffice Arrebita</h1>
+            <p>Gestão rápida do catálogo, encomendas e clientes.</p>
+        </div>
+        <div class="bo-header-badge">
+            <span class="bo-dot"></span>
+            Ambiente de desenvolvimento
+        </div>
+    </header>
+
+    <section class="bo-section">
+        <h2 class="bo-section-title">Resumo rápido</h2>
+        <div class="bo-stats-grid">
+            <article class="bo-stat-card">
+                <div class="bo-stat-icon">🍷</div>
+                <div class="bo-stat-content">
+                    <span class="bo-stat-label">Vinhos ativos</span>
+                    <span class="bo-stat-value">—</span>
+                    <span class="bo-stat-hint">Ligaremos isto à BD depois.</span>
+                </div>
+            </article>
+
+            <article class="bo-stat-card">
+                <div class="bo-stat-icon">🧾</div>
+                <div class="bo-stat-content">
+                    <span class="bo-stat-label">Encomendas hoje</span>
+                    <span class="bo-stat-value">—</span>
+                    <span class="bo-stat-hint">Por agora é só layout.</span>
+                </div>
+            </article>
+
+            <article class="bo-stat-card">
+                <div class="bo-stat-icon">👤</div>
+                <div class="bo-stat-content">
+                    <span class="bo-stat-label">Clientes registados</span>
+                    <span class="bo-stat-value">—</span>
+                    <span class="bo-stat-hint">Quando houver dados, aparecem aqui.</span>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="bo-section">
+        <h2 class="bo-section-title">Gestão principal</h2>
+        <div class="bo-grid">
+            <a class="bo-card" href="wines">
+                <div class="bo-card-header">
+                    <span class="bo-card-icon">🍇</span>
+                    <h3>Vinhos &amp; catálogo</h3>
+                </div>
+                <p>Gerir vinhos, tipos, castas, imagens e promoções.</p>
+                <span class="bo-card-cta">Entrar na gestão de vinhos</span>
+            </a>
+
+            <a class="bo-card bo-card-disabled" href="#">
+                <div class="bo-card-header">
+                    <span class="bo-card-icon">📦</span>
+                    <h3>Encomendas</h3>
+                </div>
+                <p>Consultar estado das encomendas, pagamentos e faturas.</p>
+                <span class="bo-card-cta">Brevemente disponível</span>
+            </a>
+
+            <a class="bo-card bo-card-disabled" href="#">
+                <div class="bo-card-header">
+                    <span class="bo-card-icon">👥</span>
+                    <h3>Clientes</h3>
+                </div>
+                <p>Gestão de contas, histórico de compras e preferências.</p>
+                <span class="bo-card-cta">Brevemente disponível</span>
+            </a>
+        </div>
+    </section>
+
+    <section class="bo-section bo-section-secondary">
+        <h2 class="bo-section-title">Ferramentas rápidas</h2>
+        <div class="bo-quick-actions">
+            <button class="bo-quick-btn" type="button">
+                + Adicionar novo vinho
+            </button>
+            <button class="bo-quick-btn bo-quick-btn-ghost" type="button">
+                Ver últimas promoções
+            </button>
+        </div>
+        <p class="bo-footnote">
+            Os botões ainda não fazem nada. Tal como muitos gestores de projeto.
+        </p>
+    </section>
+</section>
+{% endblock %}
