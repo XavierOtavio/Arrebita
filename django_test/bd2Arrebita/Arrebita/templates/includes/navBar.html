@@ -1,15 +1,16 @@
 {% load static %}
 <header class="site-header">
     <div class="container nav-wrap">
-        <a class="brand" href="/django_test/bd2Arrebita/Static">
-            <img src="{% static 'img/logo.svg' %}" alt="Arrebita" />
+        <a class="brand" href="/">
+            <img src="{% static 'img/logo.png' %}" alt="Arrebita" />
         </a>
         <nav class="main-nav">
-            <a href="/django_test/bd2Arrebita/Static" class="nav-link active">Home</a>
+            <a href="/" class="nav-link active">Home</a>
             <a href="/wines" class="nav-link">Vinhos</a>
             <a href="/events" class="nav-link">Eventos</a>
             <a href="/comunidade" class="nav-link">Comunidade</a>
             <a href="/perfil" class="nav-link">Perfil</a>
+            <a href="/backoffice" class="nav-link">Admin</a>
         </nav>
         <button class="nav-toggle" aria-label="Abrir menu">&#9776;</button>
     </div>

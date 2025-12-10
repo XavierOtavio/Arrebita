@@ -8,14 +8,14 @@
     --radius-xl: 20px;
     --shadow-soft: 0 10px 30px rgba(0, 0, 0, .35);
     --bg:#2a0a0a;         /* fundo vinho */
-    --panel:#330e0e;      /* cartões */
+    --panel: #171a1f;      /* cartões */
     --panel-soft:#361111; /* hover/realce */
     --ink:#f4e7c8;        /* texto principal (bege dourado) */
     --muted:#d9cdb1;      /* texto secundário */
-    --line:#4a1919;       /* linhas subtis */
+    --line: #171a1f;       /* linhas subtis */
     --accent:#7a1f1f;     /* botões */
     --accent-2:#912626;   /* hover */
-    --badge:#3d1414;      /* chips/badges */
+    --badge: #bfa97e;      /* chips/badges */
     --shadow: 0 8px 28px rgba(0,0,0,.28);
 }
 
@@ -79,7 +79,7 @@ a:hover {
 }
 
 .brand img {
-    height: 28px
+    height: 40px
 }
 
 
@@ -374,6 +374,12 @@ body{background:var(--bg)}
     }
 }
 
+.card-img{
+    aspect-ratio: 4/3;
+    object-fit: cover;
+    width: 100%
+}
+
 .post {
     background: #12141a;
     border: 1px solid #252834;
@@ -432,8 +438,8 @@ body{background:var(--bg)}
 }
 
 .footer-logo {
-    height: 26px;
-    margin-bottom: 8px
+    height: 100px;
+    /*margin-bottom: 8px*/
 }
 
 .tagline {

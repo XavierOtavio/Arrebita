@@ -1,0 +1,555 @@
+/* WRAPPER GERAL */
+
+.bo-wrapper {
+    max-width: 1120px;
+    margin: 2.5rem auto;
+    padding: 0 1.5rem 2.5rem;
+    color: var(--ink);
+}
+
+/* HEADER COMUM BACKOFFICE */
+
+/* HEADER COMUM BACKOFFICE (tema escuro Arrebita) */
+
+.bo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.bo-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.bo-title {
+    font-family: "Playfair Display", serif;
+    font-size: 2.2rem;
+    letter-spacing: 0.03em;
+    margin: 0;
+    color: #fafafa;
+}
+
+.bo-subtitle {
+    color: var(--muted);
+    margin: 0;
+    font-size: 0.96rem;
+}
+
+/* compatibilidade com o que já tinhas */
+.bo-header h1 {
+    font-size: 2.2rem;
+    margin: 0 0 0.25rem 0;
+}
+
+.bo-header p {
+    color: var(--muted);
+    margin: 0;
+    font-size: 0.96rem;
+}
+
+/* badge de ambiente, alinhada com o resto do site */
+
+.bo-header-badge,
+.bo-env-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.11em;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid color-mix(in srgb, var(--dourado) 55%, transparent);
+    color: var(--dourado);
+    white-space: nowrap;
+}
+
+.bo-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #2ecc71;
+}
+
+
+/* SEÇÕES GENÉRICAS */
+
+.bo-section {
+    margin-bottom: 2rem;
+}
+
+.bo-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: #fafafa;
+}
+
+.bo-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* ----------------------------- */
+/* BOTÕES (REUTILIZÁVEIS)       */
+/* ----------------------------- */
+
+/* BOTÕES (estilo Arrebita, versão backoffice) */
+
+.bo-quick-btn,
+.bo-btn-primary {
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--vinho) 65%, var(--bordo) 35%);
+    padding: 0.55rem 1.2rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--vinho), var(--bordo));
+    color: #fff;
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--vinho) 35%, #000 65%);
+    transition: transform 0.08s ease, box-shadow 0.08s ease, opacity 0.08s ease;
+}
+
+.bo-quick-btn:hover,
+.bo-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--vinho) 45%, #000 55%);
+}
+
+.bo-quick-btn-ghost,
+.bo-btn-secondary {
+    border-radius: 999px;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.9rem;
+    cursor: pointer;
+    background: transparent;
+    color: var(--dourado);
+    border: 1px solid rgba(197, 160, 90, 0.5);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bo-quick-btn-ghost:hover,
+.bo-btn-secondary:hover {
+    background: rgba(197, 160, 90, 0.08);
+}
+
+
+/* LINKS DE AÇÃO (ex: Editar / Imagens / Promoções / Apagar) */
+
+.bo-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: 0.85rem;
+    cursor: pointer;
+    color: var(--dourado);
+    text-decoration: none;
+}
+
+.bo-link:hover {
+    text-decoration: underline;
+}
+
+.bo-danger {
+    color: #ff6b6b;
+}
+
+.bo-danger:hover {
+    text-decoration: underline;
+}
+
+/* estado vazio */
+
+.bo-empty {
+    font-size: 0.9rem;
+    color: var(--muted);
+    padding: 0.8rem 0.2rem;
+}
+
+/* FOOTNOTE */
+
+.bo-footnote {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #777;
+}
+
+/* ----------------------------- */
+/* DASHBOARD EXISTENTE          */
+/* ----------------------------- */
+
+.bo-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.bo-stat-card {
+    display: flex;
+    gap: 0.9rem;
+    padding: 1rem 1.1rem;
+    border-radius: 16px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+}
+
+.bo-stat-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+}
+
+.bo-stat-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+}
+
+.bo-stat-value {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.bo-stat-hint {
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+/* CARDS GRID */
+
+.bo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.bo-card {
+    border-radius: 16px;
+    padding: 1.25rem 1.4rem;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    text-decoration: none;
+    color: inherit;
+    transition:
+            transform 0.12s ease,
+            box-shadow 0.12s ease,
+            border-color 0.12s ease,
+            background 0.12s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    box-shadow: var(--shadow);
+}
+
+.bo-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.bo-card-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    background: var(--badge);
+}
+
+.bo-card h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #fafafa;
+}
+
+.bo-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.bo-card-cta {
+    margin-top: 0.4rem;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--dourado);
+}
+
+.bo-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.5);
+    border-color: var(--accent-2);
+    background: var(--panel-soft);
+}
+
+.bo-card-disabled {
+    opacity: 0.5;
+    cursor: default;
+    pointer-events: none;
+}
+
+/* Secção secundária no dashboard */
+
+.bo-section-secondary {
+    border-top: 1px solid #eee;
+    padding-top: 1.25rem;
+}
+
+.bo-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+}
+
+/* ----------------------------- */
+/* FORMULÁRIOS / FILTROS VINHOS */
+/* ----------------------------- */
+
+.bo-filters-form {
+    border-radius: 14px;
+    border: 1px solid var(--line);
+    padding: 1rem 1.1rem 1.1rem;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+}
+
+.bo-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.75rem 1rem;
+    margin-bottom: 0.9rem;
+}
+
+.bo-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.bo-field label {
+    font-weight: 500;
+    font-size: 0.86rem;
+    color: #f3f3f3;
+}
+
+.bo-field input,
+.bo-field select,
+.bo-field textarea {
+    border-radius: 8px;
+    border: 1px solid #252834;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.9rem;
+    outline: none;
+    background: #0f1117;
+    color: #f5f5f5;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+
+.bo-field input:focus,
+.bo-field select:focus,
+.bo-field textarea:focus {
+    border-color: var(--dourado);
+    box-shadow: 0 0 0 2px rgba(197, 160, 90, 0.25);
+    background: #10131d;
+}
+
+.bo-field textarea {
+    resize: vertical;
+    min-height: 2.4rem;
+}
+
+.bo-field-checkbox label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 400;
+    color: var(--muted);
+}
+
+.bo-filters-actions {
+    display: flex;
+    gap: 0.6rem;
+    justify-content: flex-end;
+}
+
+/* ----------------------------- */
+/* TABELA DE VINHOS              */
+/* ----------------------------- */
+
+.bo-table-wrapper {
+    border-radius: 16px;
+    border: 1px solid var(--line);
+    overflow: hidden;
+    background: var(--panel);
+    box-shadow: var(--shadow);
+}
+
+.bo-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    color: #f1f1f1;
+}
+
+.bo-table thead {
+    background: #151823;
+}
+
+.bo-table th,
+.bo-table td {
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #252834;
+}
+
+.bo-table th {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.bo-table tbody tr:nth-child(even) {
+    background: #13151e;
+}
+
+.bo-table tbody tr:nth-child(odd) {
+    background: #101119;
+}
+
+.bo-table tbody tr:hover {
+    background: var(--panel-soft);
+}
+
+.bo-table-actions,
+.bo-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.6rem;
+    align-items: center;
+}
+
+/* estado vazio */
+
+.bo-empty {
+    font-size: 0.9rem;
+    color: #666;
+    padding: 0.8rem 0.2rem;
+}
+
+/* ----------------------------- */
+/* MODAIS SIMPLES                */
+/* ----------------------------- */
+
+.bo-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 60;
+}
+
+.bo-modal[hidden] {
+    display: none;
+}
+
+.bo-modal-content {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #e3e3e3;
+    max-width: 720px;
+    width: 100%;
+    padding: 1.1rem 1.2rem 1.2rem;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15);
+}
+
+.bo-modal-header {
+    margin-bottom: 0.9rem;
+}
+
+.bo-modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.bo-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.bo-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 0.75rem 1rem;
+}
+
+.bo-modal-footer {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+}
+
+/* ----------------------------- */
+/* RESPONSIVE                    */
+/* ----------------------------- */
+
+@media (max-width: 640px) {
+    .bo-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .bo-header-badge,
+    .bo-env-badge {
+        align-self: flex-start;
+    }
+
+    .bo-filters-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .bo-modal-content {
+        margin: 0 1rem;
+    }
+}
+
+/* Destaques para promoções na tabela */
+.promo-active {
+    color: #b38b2b;
+    font-weight: 600;
+}
+
+.promo-none {
+    color: #aaa;
+}

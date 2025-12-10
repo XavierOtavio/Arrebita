@@ -13,12 +13,13 @@ class WineType(models.Model):
         return self.name
 
 
+
 class WineListView(models.Model):
     wine_id = models.IntegerField(primary_key=True)
     sku = models.CharField(max_length=100)
     name = models.CharField(max_length=255)
 
-    type_id = models.IntegerField(null=True, blank=True)
+    type_id = models.UUIDField(null=True, blank=True)
     type_label = models.CharField(max_length=100, null=True, blank=True)
 
     region = models.CharField(max_length=100, null=True, blank=True)
@@ -27,11 +28,11 @@ class WineListView(models.Model):
     stock_qty = models.IntegerField(null=True, blank=True)
 
     tasting_notes = models.TextField(null=True, blank=True)
-    alcohol_abv = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
-    ideal_serving_temp_c = models.IntegerField(null=True, blank=True)
-    bottle_capacity_ml = models.IntegerField(null=True, blank=True)
-    food_pairings = models.TextField(null=True, blank=True)
-    winemaker_name = models.CharField(max_length=255, null=True, blank=True)
+    alcohol_content = models.DecimalField(max_digits=4, decimal_places=1, null=True, blank=True)
+    serving_temperature = models.IntegerField(null=True, blank=True)
+    bottle_capacity = models.IntegerField(null=True, blank=True)
+    pairing = models.TextField(null=True, blank=True)
+    winemaker = models.CharField(max_length=255, null=True, blank=True)
 
     created_at = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(null=True, blank=True)

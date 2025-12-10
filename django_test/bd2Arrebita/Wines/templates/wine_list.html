@@ -1,4 +1,8 @@
+{% extends "base.html" %}
+{% block title %}Arrebita — Vinhos{% endblock %}
+{% block content %}
 {% load static %}
+
 <!DOCTYPE html>
 <html lang="pt">
 <head>
@@ -10,18 +14,18 @@
     <link rel="stylesheet" href="{% static 'css/wine-list.css' %}">
 </head>
 <body class="wl-body">
-<header class="wl-topbar">
-    <div class="wl-topbar-inner">
-        <a class="wl-brand" href="/">ARREBITA</a>
-        <nav class="wl-nav">
-            <a href="/">Home</a>
-            <a class="is-active" href="{% url 'wine:winelist' %}">Vinhos</a>
-            <a href="#">Eventos</a>
-            <a href="#">Comunidade</a>
-            <a href="#">Perfil</a>
-        </nav>
-    </div>
-</header>
+<!--<header class="wl-topbar">-->
+<!--    <div class="wl-topbar-inner">-->
+<!--        <a class="wl-brand" href="/">ARREBITA</a>-->
+<!--        <nav class="wl-nav">-->
+<!--            <a href="/">Home</a>-->
+<!--            <a class="is-active" href="{% url 'wine:winelist' %}">Vinhos</a>-->
+<!--            <a href="#">Eventos</a>-->
+<!--            <a href="#">Comunidade</a>-->
+<!--            <a href="#">Perfil</a>-->
+<!--        </nav>-->
+<!--    </div>-->
+<!--</header>-->
 
 <main class="wl-container">
     <h1 class="wl-title">Vinhos</h1>
@@ -162,3 +166,4 @@
 </script>
 </body>
 </html>
+{% endblock %}
