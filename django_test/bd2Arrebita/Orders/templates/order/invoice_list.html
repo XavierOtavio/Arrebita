@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Faturas Pagas</title>
+</head>
+<body>
+<h1>Faturas das Ordens Pagas</h1>
+<table>
+    <thead>
+    <tr>
+        <th>ID da Fatura</th>
+        <th>Invoice Number</th>
+        <th>Data de Emissão</th>
+        <th>URL da Fatura</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for invoice in invoices %}
+    <tr>
+        <td>{{ invoice.invoice_id }}</td>
+        <td>{{ invoice.invoice_number }}</td>
+        <td>{{ invoice.issued_at }}</td>
+        <td>{{ invoice.invoice_url }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</body>
+</html>
