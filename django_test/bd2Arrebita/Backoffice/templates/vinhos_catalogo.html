@@ -9,7 +9,7 @@
     <!-- HEADER PRINCIPAL -->
     <header class="bo-header">
         <div class="bo-header-left">
-            <h1 class="bo-title">Vinhos & Catálogo</h1>
+            <h1 class="bo-title">Vinhos &amp; Catálogo</h1>
             <p class="bo-subtitle">
                 Gestão completa de vinhos, imagens, tipos e promoções.
             </p>
@@ -50,9 +50,17 @@
 
                 <div class="bo-field">
                     <label for="region">Região</label>
-                    <input type="text" id="region" name="region"
+                    <input type="text"
+                           id="region"
+                           name="region"
+                           list="filter-region-options"
                            placeholder="Ex.: Dão, Douro"
                            value="{{ request.GET.region }}">
+                    <datalist id="filter-region-options">
+                        {% for r in regions %}
+                        <option value="{{ r.name }}"></option>
+                        {% endfor %}
+                    </datalist>
                 </div>
 
                 <div class="bo-field bo-field-checkbox">
@@ -113,17 +121,15 @@
                     <td>
                         {% if w.has_active_promo %}
                         <span class="promo-active">
-            {{ w.promo_pct_off }}%
-            {% if w.promo_price %}
-                &bull; {{ w.promo_price }}&nbsp;€
-            {% endif %}
-        </span>
+                            {{ w.promo_pct_off }}%
+                            {% if w.promo_price %}
+                                &bull; {{ w.promo_price }}&nbsp;€
+                            {% endif %}
+                        </span>
                         {% else %}
                         <span class="promo-none">—</span>
                         {% endif %}
                     </td>
-
-
 
                     <td class="bo-actions">
                         <button class="bo-link" data-modal-target="#modal-edit-{{ w.wine_id }}">
@@ -134,14 +140,18 @@
                             Imagens
                         </button>
 
+                        <!-- Placeholder: Promoções (a implementar se quiseres) -->
+                        <!--
                         <button class="bo-link" data-modal-target="#modal-promos-{{ w.wine_id }}">
                             Promoções
                         </button>
+                        -->
 
                         <form method="post"
                               action="{% url 'backoffice:backoffice_wine_delete' w.wine_id %}">
                             {% csrf_token %}
-                            <button class="bo-link bo-danger"
+                            <button type="submit"
+                                    class="bo-link bo-danger"
                                     onclick="return confirm('Tem a certeza que pretende eliminar este vinho?');">
                                 Apagar
                             </button>
@@ -191,7 +201,11 @@
 
                     <div class="bo-field">
                         <label>Região</label>
-                        <input type="text" name="region">
+                        <select name="region_id" required>
+                            {% for r in regions %}
+                            <option value="{{ r.region_id }}">{{ r.name }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
 
                     <div class="bo-field">
@@ -250,6 +264,176 @@
             </form>
         </div>
     </section>
+
+    <!-- MODAIS: EDITAR VINHO (um por vinho) -->
+    {% for w in wines %}
+    <section id="modal-edit-{{ w.wine_id }}" class="bo-modal" hidden>
+        <div class="bo-modal-content">
+            <header class="bo-modal-header">
+                <h3>Editar vinho: {{ w.name }}</h3>
+            </header>
+
+            <form method="post"
+                  action="{% url 'backoffice:backoffice_wine_update' w.wine_id %}"
+                  class="bo-form">
+                {% csrf_token %}
+
+                <div class="bo-form-grid">
+                    <div class="bo-field">
+                        <label>SKU</label>
+                        <input type="text" name="sku" value="{{ w.sku }}" required>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Nome</label>
+                        <input type="text" name="name" value="{{ w.name }}" required>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Tipo</label>
+                        <select name="type_id" required>
+                            {% for t in wine_types %}
+                            <option value="{{ t.type_id }}"
+                                    {% if t.type_id|stringformat:"s" == w.type_id|stringformat:"s" %}selected{% endif %}>
+                            {{ t.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Região</label>
+                        <select name="region_id" required>
+                            {% for r in regions %}
+                            <option value="{{ r.region_id }}"
+                                    {% if r.name == w.region %}selected{% endif %}>
+                                {{ r.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Ano</label>
+                        <input type="number" min="1900" max="2100" name="vintage_year"
+                               value="{{ w.vintage_year }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Preço (€)</label>
+                        <input type="number" step="0.01" name="price" value="{{ w.price }}" required>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Stock</label>
+                        <input type="number" name="stock_qty" min="0" value="{{ w.stock_qty }}" required>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>% Álcool</label>
+                        <input type="number" step="0.1" name="alcohol_content"
+                               value="{{ w.alcohol_content }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Temperatura de serviço (°C)</label>
+                        <input type="number" step="0.5" name="serving_temperature"
+                               value="{{ w.serving_temperature }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Capacidade (L)</label>
+                        <input type="number" step="0.01" name="bottle_capacity"
+                               value="{{ w.bottle_capacity }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Harmonização</label>
+                        <textarea name="pairing" rows="2">{{ w.pairing }}</textarea>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Enólogo</label>
+                        <input type="text" name="winemaker" value="{{ w.winemaker }}">
+                    </div>
+
+                    <div class="bo-field bo-field-full">
+                        <label>Notas de prova</label>
+                        <textarea name="tasting_notes" rows="3">{{ w.tasting_notes }}</textarea>
+                    </div>
+                </div>
+
+                <footer class="bo-modal-footer">
+                    <button class="bo-btn-primary">Guardar alterações</button>
+                    <button type="button" class="bo-btn-secondary"
+                            data-modal-close="#modal-edit-{{ w.wine_id }}">
+                        Cancelar
+                    </button>
+                </footer>
+            </form>
+        </div>
+    </section>
+    {% endfor %}
+
+    <!-- MODAIS: IMAGENS (um por vinho) -->
+    {% for w in wines %}
+    <section id="modal-images-{{ w.wine_id }}" class="bo-modal" hidden>
+        <div class="bo-modal-content bo-modal-images">
+            <header class="bo-modal-header">
+                <h3>Imagens de {{ w.name }}</h3>
+            </header>
+
+            <div class="bo-images-list">
+                {% if w.images %}
+                <ul class="bo-images-ul">
+                    {% for img in w.images %}
+                    <li class="bo-image-item">
+                        <div class="bo-image-info">
+                            <span class="bo-image-url">{{ img.image_url }}</span>
+                            <span class="bo-image-type">{{ img.image_type }}</span>
+                        </div>
+                        <form method="post"
+                              action="{% url 'backoffice:backoffice_wine_image_delete' w.wine_id img.image_id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="bo-link bo-danger-small">
+                                Remover
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="bo-empty">Nenhuma imagem associada a este vinho.</p>
+                {% endif %}
+            </div>
+
+            <form method="post"
+                  action="{% url 'backoffice:backoffice_wine_image_create' w.wine_id %}"
+                  class="bo-form bo-form-inline">
+                {% csrf_token %}
+                <div class="bo-form-grid">
+                    <div class="bo-field bo-field-full">
+                        <label>URL da imagem</label>
+                        <input type="url" name="image_url" placeholder="https://...">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Tipo</label>
+                        <input type="text" name="image_type" placeholder="catalog, banner, etc.">
+                    </div>
+                </div>
+
+                <footer class="bo-modal-footer">
+                    <button class="bo-btn-primary">Adicionar imagem</button>
+                    <button type="button" class="bo-btn-secondary"
+                            data-modal-close="#modal-images-{{ w.wine_id }}">
+                        Fechar
+                    </button>
+                </footer>
+            </form>
+        </div>
+    </section>
+    {% endfor %}
 
 </section>
 
