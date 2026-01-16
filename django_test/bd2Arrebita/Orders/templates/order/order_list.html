@@ -1,40 +1,45 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Lista de Ordens</title>
-</head>
-<body>
-<h1>Lista de Ordens</h1>
-<table>
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<h1>Lista de Encomendas</h1>
+
+<table border="1" cellpadding="8" cellspacing="0">
     <thead>
     <tr>
-        <th>ID da Ordem</th>
-        <th>Order Number</th>
+        <th>ID</th>
+        <th>Número</th>
+        <th>Cliente</th>
+        <th>Tipo</th>
         <th>Status</th>
+        <th>Criada em</th>
+        <th>Atualizada em</th>
         <th>Ações</th>
     </tr>
     </thead>
+
     <tbody>
     {% for order in orders %}
     <tr>
         <td>{{ order.order_id }}</td>
         <td>{{ order.order_number }}</td>
+        <td>{{ order.user_id }}</td>
+        <td>{{ order.kind }}</td>
         <td>{{ order.status }}</td>
+        <td>{{ order.created_at }}</td>
+        <td>{{ order.updated_at }}</td>
         <td>
-            <form method="POST" action="{% url 'order_list' %}">
-                {% csrf_token %}
-                <input type="hidden" name="order_id" value="{{ order.order_id }}">
-                <select name="status">
-                    <option value="PENDING_PAYMENT" {% if order.status == 'PENDING_PAYMENT' %}selected{% endif %}>Pendente</option>
-                    <option value="PAID" {% if order.status == 'PAID' %}selected{% endif %}>Pago</option>
-                    <!-- Adicione outros status aqui, se necessário -->
-                </select>
-                <button type="submit">Atualizar Status</button>
-            </form>
+            <a href="{% url 'update_order' order.order_id %}">
+                Editar
+            </a>
         </td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="8">Não existem encomendas registadas.</td>
     </tr>
     {% endfor %}
     </tbody>
 </table>
-</body>
-</html>
+
+{% endblock %}

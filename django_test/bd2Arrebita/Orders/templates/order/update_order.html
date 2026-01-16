@@ -1,15 +1,62 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Editar Ordem</title>
-</head>
-<body>
-<h1>Editar Ordem</h1>
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<h1>Editar Encomenda #{{ order.order_id }}</h1>
+
 <form method="POST">
     {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Salvar</button>
+
+    <table cellpadding="6">
+        <tr>
+            <td><label for="id_order_number">Número da encomenda</label></td>
+            <td>{{ form.order_number }}</td>
+        </tr>
+
+        <tr>
+            <td><label for="id_user_id">ID do Utilizador</label></td>
+            <td>{{ form.user_id }}</td>
+        </tr>
+
+        <tr>
+            <td><label for="id_kind">Tipo</label></td>
+            <td>{{ form.kind }}</td>
+        </tr>
+
+        <tr>
+            <td><label for="id_status">Estado</label></td>
+            <td>{{ form.status }}</td>
+        </tr>
+
+        <tr>
+            <td><label for="id_billing_name">Nome de Faturação</label></td>
+            <td>{{ form.billing_name }}</td>
+        </tr>
+
+        <tr>
+            <td><label for="id_billing_nif">NIF</label></td>
+            <td>{{ form.billing_nif }}</td>
+        </tr>
+
+        <tr>
+            <td><label for="id_billing_address">Morada de Faturação</label></td>
+            <td>{{ form.billing_address }}</td>
+        </tr>
+
+        <tr>
+            <td><label for="id_invoice_url">URL da Fatura</label></td>
+            <td>{{ form.invoice_url }}</td>
+        </tr>
+
+        <tr>
+            <td colspan="2" style="padding-top: 10px;">
+                <button type="submit">Guardar Alterações</button>
+                <a href="{% url 'order_list' %}" style="margin-left: 15px;">
+                    Voltar à lista
+                </a>
+            </td>
+        </tr>
+    </table>
 </form>
-<a href="{% url 'order_list' %}">Voltar para a lista</a>
-</body>
-</html>
+
+{% endblock %}
