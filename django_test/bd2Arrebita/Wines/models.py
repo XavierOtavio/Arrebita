@@ -13,7 +13,6 @@ class WineType(models.Model):
         return self.name
 
 
-
 class WineListView(models.Model):
     wine_id = models.UUIDField(primary_key=True)
     sku = models.CharField(max_length=100)
@@ -56,7 +55,7 @@ class WineListView(models.Model):
     @property
     def rating_safe(self):
         """
-        Placeholder temporário: rating virá do MongoDB.
-        Por agora devolve sempre 0 para não rebentar o template.
+        Rating vem do Mongo. Usa valor calculado pelo view quando existir.
         """
-        return 0
+        value = getattr(self, "_rating_safe", None)
+        return value if value is not None else 0

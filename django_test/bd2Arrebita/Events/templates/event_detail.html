@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Arrebita - {{ event.display_title }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/event-detail.css' %}">
+
+<section class="event-detail">
+    <header class="event-detail-hero">
+        <div class="event-detail-media">
+            <img src="{% static 'img/a3.png' %}" alt="{{ event.display_title }}">
+            <div class="event-detail-tags">
+                <span class="event-tag">{{ event.format_label }}</span>
+                {% if event.status_label %}<span class="event-tag">{{ event.status_label }}</span>{% endif %}
+                {% if event.timing_label %}<span class="event-tag">{{ event.timing_label }}</span>{% endif %}
+            </div>
+        </div>
+
+        <div class="event-detail-info">
+            <span class="event-pill">Evento</span>
+            <h1>{{ event.display_title }}</h1>
+            <p class="event-detail-summary">{{ event.summary|default:event.description }}</p>
+
+            <div class="event-detail-meta">
+                <div>
+                    <span>Data</span>
+                    <strong>{{ event.starts_at|date:"d/m/Y" }} {{ event.starts_at|time:"H:i" }}</strong>
+                </div>
+                {% if event.ends_at %}
+                <div>
+                    <span>Fim</span>
+                    <strong>{{ event.ends_at|date:"d/m/Y" }} {{ event.ends_at|time:"H:i" }}</strong>
+                </div>
+                {% endif %}
+                <div>
+                    <span>Local</span>
+                    <strong>{{ event.location_display|default:"-" }}</strong>
+                </div>
+                <div>
+                    <span>Duracao</span>
+                    <strong>{{ event.duration_display|default:"-" }}</strong>
+                </div>
+            </div>
+
+            <div class="event-detail-actions">
+                <form method="post" action="/cart/add/" class="event-ticket-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="item_type" value="event">
+                    <input type="hidden" name="event_id" value="{{ event.event_id }}">
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <label for="qty">Quantidade</label>
+                    <input id="qty" name="qty" type="number" min="1" value="1">
+                    <button class="btn btn-primary" type="submit">
+                        {% if event.is_free %}Adicionar bilhete gratuito{% else %}Adicionar bilhete{% endif %}
+                    </button>
+                </form>
+                {% if event.is_free %}
+                    <div class="event-free-note">Evento gratuito</div>
+                {% endif %}
+
+                {% if event.is_online and event.online_url %}
+                    <a class="btn btn-ghost" href="{{ event.online_url }}" target="_blank" rel="noopener">Aceder online</a>
+                {% endif %}
+            </div>
+
+            <div class="event-detail-price">
+                <span>Preco</span>
+                <strong>{{ event.price_display }}</strong>
+            </div>
+        </div>
+    </header>
+
+    <section class="event-detail-grid">
+        <div class="event-panel">
+            <h2>Detalhes</h2>
+            <p>{{ event.description|default:"Sem descricao adicional." }}</p>
+        </div>
+
+        <div class="event-panel">
+            <h2>Localizacao</h2>
+            {% if event.is_online %}
+                <p>Este evento e online.</p>
+            {% else %}
+                <ul>
+                    {% if event.venue_name %}<li>{{ event.venue_name }}</li>{% endif %}
+                    {% if event.address_line1 %}<li>{{ event.address_line1 }}</li>{% endif %}
+                    {% if event.address_line2 %}<li>{{ event.address_line2 }}</li>{% endif %}
+                    {% if event.postal_code or event.city %}
+                        <li>{{ event.postal_code }} {{ event.city }}</li>
+                    {% endif %}
+                    {% if event.region or event.country_code %}
+                        <li>{{ event.region }} {{ event.country_code }}</li>
+                    {% endif %}
+                </ul>
+            {% endif %}
+        </div>
+    </section>
+</section>
+{% endblock %}

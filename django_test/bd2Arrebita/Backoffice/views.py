@@ -14,6 +14,8 @@ from openpyxl import Workbook, load_workbook
 
 from Accounts.models import User
 from Events.models import EventListView
+from Orders.models import Order, Invoice, OrderItem, OrderEventItem
+from Wines.models import WineListView
 
 EVENT_STATUS_LABELS = {
     "draft": "Rascunho",
@@ -24,12 +26,207 @@ EVENT_STATUS_LABELS = {
 
 
 def dashboard(request):
-    return render(request, "dashboard.html")
+    stats = {
+        "wines_total": None,
+        "orders_today": None,
+        "users_total": None,
+        "orders_total": None,
+        "invoices_total": None,
+        "items_total": None,
+        "events_published": None,
+    }
+
+    try:
+        with connection.cursor() as cur:
+            cur.execute("SELECT COUNT(*) FROM public.vw_wine_list;")
+            row = cur.fetchone()
+            stats["wines_total"] = row[0] if row else 0
+
+            cur.execute("SELECT COUNT(*) FROM public.orders WHERE created_at::date = CURRENT_DATE;")
+            row = cur.fetchone()
+            stats["orders_today"] = row[0] if row else 0
+
+            cur.execute("SELECT COUNT(*) FROM public.users;")
+            row = cur.fetchone()
+            stats["users_total"] = row[0] if row else 0
+
+            cur.execute("SELECT COUNT(*) FROM public.orders;")
+            row = cur.fetchone()
+            stats["orders_total"] = row[0] if row else 0
+
+            cur.execute("SELECT COUNT(*) FROM public.invoices;")
+            row = cur.fetchone()
+            stats["invoices_total"] = row[0] if row else 0
+
+            cur.execute("SELECT COALESCE(SUM(quantity), 0) FROM public.order_items;")
+            row = cur.fetchone()
+            stats["items_total"] = row[0] if row else 0
+
+            cur.execute("SELECT COUNT(*) FROM public.mv_events_all WHERE status = 'published';")
+            row = cur.fetchone()
+            stats["events_published"] = row[0] if row else 0
+    except Exception:
+        pass
+
+    return render(request, "dashboard.html", {"stats": stats})
 
 
 def dictfetchall(cursor):
     cols = [col[0] for col in cursor.description]
     return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+def _enum_values(enum_name):
+    if enum_name not in {"order_status", "order_kind"}:
+        return []
+    with connection.cursor() as cur:
+        cur.execute(f"SELECT unnest(enum_range(NULL::public.{enum_name}))::text;")
+        return [row[0] for row in cur.fetchall()]
+
+
+def _parse_datetime_local(value):
+    if not value:
+        return None
+    try:
+        return dt.datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _parse_order_items(post_data):
+    wine_ids = post_data.getlist("item_wine_id")
+    quantities = post_data.getlist("item_qty")
+
+    items = []
+    for wine_id, qty in zip(wine_ids, quantities):
+        wine_id = (wine_id or "").strip()
+        if not wine_id:
+            continue
+        try:
+            wine_uuid = uuid.UUID(wine_id)
+        except (ValueError, TypeError):
+            continue
+
+        try:
+            qty_value = int(qty)
+        except (ValueError, TypeError):
+            continue
+        if qty_value <= 0:
+            continue
+
+        items.append({"wine_id": wine_uuid, "quantity": qty_value})
+
+    # deduplicate by wine_id (keep last)
+    deduped = {}
+    for item in items:
+        deduped[item["wine_id"]] = item
+    return list(deduped.values())
+
+
+def _parse_order_event_items(post_data):
+    event_ids = post_data.getlist("item_event_id")
+    quantities = post_data.getlist("item_event_qty")
+
+    items = []
+    for event_id, qty in zip(event_ids, quantities):
+        event_id = (event_id or "").strip()
+        if not event_id:
+            continue
+        try:
+            event_uuid = uuid.UUID(event_id)
+        except (ValueError, TypeError):
+            continue
+
+        try:
+            qty_value = int(qty)
+        except (ValueError, TypeError):
+            continue
+        if qty_value <= 0:
+            continue
+
+        items.append({"event_id": event_uuid, "quantity": qty_value})
+
+    deduped = {}
+    for item in items:
+        deduped[item["event_id"]] = item
+    return list(deduped.values())
+
+
+def _replace_order_items(order_id, items):
+    with connection.cursor() as cur:
+        cur.execute("DELETE FROM public.order_items WHERE order_id = %s;", [order_id])
+        for item in items:
+            cur.execute(
+                """
+                INSERT INTO public.order_items (order_id, wine_id, quantity)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (order_id, wine_id)
+                DO UPDATE SET quantity = EXCLUDED.quantity;
+                """,
+                [order_id, item["wine_id"], item["quantity"]],
+            )
+
+
+def _ensure_event_items_table():
+    try:
+        with connection.cursor() as cur:
+            cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS public.order_event_items (
+                    order_event_item_id integer GENERATED ALWAYS AS IDENTITY,
+                    order_id integer NOT NULL,
+                    event_id uuid NOT NULL,
+                    quantity integer NOT NULL,
+                    CONSTRAINT order_event_items_pkey PRIMARY KEY (order_event_item_id),
+                    CONSTRAINT order_event_items_order_id_fkey
+                        FOREIGN KEY (order_id)
+                        REFERENCES public.orders (order_id)
+                        ON DELETE CASCADE,
+                    CONSTRAINT order_event_items_event_id_fkey
+                        FOREIGN KEY (event_id)
+                        REFERENCES public.events (event_id)
+                        ON DELETE RESTRICT,
+                    CONSTRAINT order_event_items_quantity_ck
+                        CHECK (quantity > 0),
+                    CONSTRAINT order_event_items_order_event_uk
+                        UNIQUE (order_id, event_id)
+                );
+                """
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_order_event_items_order_id ON public.order_event_items (order_id);"
+            )
+            cur.execute(
+                "CREATE INDEX IF NOT EXISTS idx_order_event_items_event_id ON public.order_event_items (event_id);"
+            )
+        return True
+    except Exception:
+        return False
+
+
+def _replace_order_event_items(order_id, items):
+    with connection.cursor() as cur:
+        cur.execute("DELETE FROM public.order_event_items WHERE order_id = %s;", [order_id])
+        for item in items:
+            cur.execute(
+                """
+                INSERT INTO public.order_event_items (order_id, event_id, quantity)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (order_id, event_id)
+                DO UPDATE SET quantity = EXCLUDED.quantity;
+                """,
+                [order_id, item["event_id"], item["quantity"]],
+            )
+
+
+def _event_display_title(event):
+    title = (event.title or "").strip()
+    slug = (event.slug or "").strip()
+    if title:
+        return title
+    if slug:
+        return slug.replace("-", " ").title()
+    return f"Evento {event.event_id}"
 
 
 def _format_event_price(event):
@@ -282,8 +479,10 @@ def backoffice_wine_update(request, wine_id):
     region_id_str = data.get("region_id")
     region_id = uuid.UUID(region_id_str) if region_id_str else None
 
+    wine_uuid = wine_id if isinstance(wine_id, uuid.UUID) else uuid.UUID(str(wine_id))
+
     params = [
-        uuid.UUID(wine_id),
+        wine_uuid,
         data.get("sku"),
         data.get("name"),
         uuid.UUID(data.get("type_id")),
@@ -322,7 +521,7 @@ def backoffice_wine_delete(request, wine_id):
     with connection.cursor() as cur:
         cur.execute(
             "CALL public.delete_wine(%s);",
-            [uuid.UUID(wine_id)],
+            [wine_id if isinstance(wine_id, uuid.UUID) else uuid.UUID(str(wine_id))],
         )
 
     return redirect(reverse("backoffice:backoffice_wines"))
@@ -348,7 +547,7 @@ def backoffice_wine_image_create(request, wine_id):
             """
             CALL public.create_wine_image(%s, %s, %s);
             """,
-            [uuid.UUID(wine_id), image_url, image_type],
+            [wine_id if isinstance(wine_id, uuid.UUID) else uuid.UUID(str(wine_id)), image_url, image_type],
         )
 
     return redirect(reverse("backoffice:backoffice_wines"))
@@ -364,7 +563,7 @@ def backoffice_wine_image_delete(request, wine_id, image_id):
     with connection.cursor() as cur:
         cur.execute(
             "CALL public.delete_wine_image(%s);",
-            [uuid.UUID(image_id)],
+            [image_id if isinstance(image_id, uuid.UUID) else uuid.UUID(str(image_id))],
         )
 
     return redirect(reverse("backoffice:backoffice_wines"))
@@ -1130,6 +1329,303 @@ def backoffice_event_delete(request, event_id):
     return redirect(reverse("backoffice:backoffice_events"))
 
 
+def backoffice_orders(request):
+    q = (request.GET.get("q") or "").strip()
+    status = (request.GET.get("status") or "").strip()
+    kind = (request.GET.get("kind") or "").strip()
+    user_filter = (request.GET.get("user") or "").strip()
+
+    orders_qs = Order.objects.all()
+
+    if q:
+        orders_qs = orders_qs.filter(order_number__icontains=q)
+    if status:
+        orders_qs = orders_qs.filter(status=status)
+    if kind:
+        orders_qs = orders_qs.filter(kind=kind)
+    if user_filter:
+        if user_filter.isdigit():
+            orders_qs = orders_qs.filter(user_id=int(user_filter))
+        else:
+            user_ids = list(
+                User.objects.filter(
+                    Q(full_name__icontains=user_filter) | Q(email__icontains=user_filter)
+                ).values_list("user_id", flat=True)
+            )
+            if user_ids:
+                orders_qs = orders_qs.filter(user_id__in=user_ids)
+            else:
+                orders_qs = orders_qs.none()
+
+    orders = list(orders_qs.order_by("-created_at")[:300])
+
+    user_ids = {order.user_id for order in orders if order.user_id}
+    user_map = {
+        user.user_id: user
+        for user in User.objects.filter(user_id__in=user_ids)
+    }
+
+    invoice_map = {
+        invoice.order_id: invoice
+        for invoice in Invoice.objects.filter(
+            order_id__in=[order.order_id for order in orders]
+        )
+    }
+
+    for order in orders:
+        order.user_obj = user_map.get(order.user_id)
+        order.invoice = invoice_map.get(order.order_id)
+
+    order_statuses = _enum_values("order_status")
+    order_kinds = _enum_values("order_kind")
+
+    invoices = list(
+        Invoice.objects.select_related("order").order_by("-issued_at")[:300]
+    )
+
+    order_ids = {order.order_id for order in orders}
+    invoice_order_ids = {invoice.order_id for invoice in invoices}
+    all_order_ids = list(order_ids | invoice_order_ids)
+
+    order_items = list(OrderItem.objects.filter(order_id__in=all_order_ids))
+    wine_ids = {item.wine_id for item in order_items}
+    wine_lookup = {
+        wine.wine_id: wine
+        for wine in WineListView.objects.filter(wine_id__in=wine_ids)
+    }
+
+    items_by_order = {}
+    for item in order_items:
+        items_by_order.setdefault(item.order_id, []).append(
+            {
+                "order_item_id": item.order_item_id,
+                "wine_id": item.wine_id,
+                "wine_name": (wine_lookup.get(item.wine_id).name if wine_lookup.get(item.wine_id) else ""),
+                "quantity": item.quantity,
+            }
+        )
+
+    event_items_by_order = {}
+    if _ensure_event_items_table():
+        event_items = list(OrderEventItem.objects.filter(order_id__in=all_order_ids))
+        event_ids = {item.event_id for item in event_items}
+        event_lookup = {
+            event.event_id: event
+            for event in EventListView.objects.filter(event_id__in=event_ids)
+        }
+        for event in event_lookup.values():
+            event.display_title = _event_display_title(event)
+
+        for item in event_items:
+            event = event_lookup.get(item.event_id)
+            event_items_by_order.setdefault(item.order_id, []).append(
+                {
+                    "order_event_item_id": item.order_event_item_id,
+                    "event_id": item.event_id,
+                    "event_title": event.display_title if event else "",
+                    "starts_at": event.starts_at if event else None,
+                    "quantity": item.quantity,
+                }
+            )
+
+    for order in orders:
+        order.items_list = items_by_order.get(order.order_id, [])
+        order.event_items_list = event_items_by_order.get(order.order_id, [])
+
+    for invoice in invoices:
+        invoice.items_list = items_by_order.get(invoice.order_id, [])
+        invoice.event_items_list = event_items_by_order.get(invoice.order_id, [])
+
+    events = list(EventListView.objects.order_by("-starts_at")[:500])
+    for event in events:
+        event.display_title = _event_display_title(event)
+
+    context = {
+        "orders": orders,
+        "invoices": invoices,
+        "order_statuses": order_statuses,
+        "order_kinds": order_kinds,
+        "users": list(User.objects.order_by("full_name")),
+        "wines": list(WineListView.objects.order_by("name")[:500]),
+        "events": events,
+        "q": q,
+        "status": status,
+        "kind": kind,
+        "user_filter": user_filter,
+    }
+    return render(request, "orders_catalogo.html", context)
+
+
+def backoffice_order_create(request):
+    if request.method != "POST":
+        return redirect(reverse("backoffice:backoffice_orders"))
+
+    data = request.POST
+    items = _parse_order_items(data)
+    event_items = _parse_order_event_items(data)
+
+    order_number = (data.get("order_number") or "").strip()
+    kind = (data.get("kind") or "").strip()
+    status = (data.get("status") or "").strip()
+    user_id_text = (data.get("user_id") or "").strip()
+
+    if not order_number or not kind or not status:
+        return redirect(reverse("backoffice:backoffice_orders"))
+
+    if Order.objects.filter(order_number=order_number).exists():
+        return redirect(reverse("backoffice:backoffice_orders"))
+
+    user_id = int(user_id_text) if user_id_text.isdigit() else None
+
+    billing_name = (data.get("billing_name") or "").strip() or None
+    billing_nif = (data.get("billing_nif") or "").strip() or None
+    billing_address = (data.get("billing_address") or "").strip() or None
+    with connection.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO public.orders (
+                order_number,
+                user_id,
+                kind,
+                status,
+                billing_name,
+                billing_nif,
+                billing_address
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING order_id;
+            """,
+            [
+                order_number,
+                user_id,
+                kind,
+                status,
+                billing_name,
+                billing_nif,
+                billing_address,
+            ],
+        )
+        row = cur.fetchone()
+
+    if row:
+        _replace_order_items(row[0], items)
+        if _ensure_event_items_table():
+            _replace_order_event_items(row[0], event_items)
+
+    return redirect(reverse("backoffice:backoffice_orders"))
+
+
+def backoffice_order_update(request, order_id):
+    if request.method != "POST":
+        return redirect(reverse("backoffice:backoffice_orders"))
+
+    data = request.POST
+    items = _parse_order_items(data)
+    event_items = _parse_order_event_items(data)
+
+    order_number = (data.get("order_number") or "").strip()
+    kind = (data.get("kind") or "").strip()
+    status = (data.get("status") or "").strip()
+    user_id_text = (data.get("user_id") or "").strip()
+
+    if not order_number or not kind or not status:
+        return redirect(reverse("backoffice:backoffice_orders"))
+
+    user_id = int(user_id_text) if user_id_text.isdigit() else None
+
+    billing_name = (data.get("billing_name") or "").strip() or None
+    billing_nif = (data.get("billing_nif") or "").strip() or None
+    billing_address = (data.get("billing_address") or "").strip() or None
+    with connection.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE public.orders
+            SET order_number = %s,
+                user_id = %s,
+                kind = %s,
+                status = %s,
+                billing_name = %s,
+                billing_nif = %s,
+                billing_address = %s,
+                updated_at = now()
+            WHERE order_id = %s;
+            """,
+            [
+                order_number,
+                user_id,
+                kind,
+                status,
+                billing_name,
+                billing_nif,
+                billing_address,
+                order_id,
+            ],
+        )
+
+    _replace_order_items(order_id, items)
+    if _ensure_event_items_table():
+        _replace_order_event_items(order_id, event_items)
+
+    return redirect(reverse("backoffice:backoffice_orders"))
+
+
+def backoffice_order_delete(request, order_id):
+    if request.method != "POST":
+        return redirect(reverse("backoffice:backoffice_orders"))
+
+    with connection.cursor() as cur:
+        cur.execute("DELETE FROM public.orders WHERE order_id = %s;", [order_id])
+
+    return redirect(reverse("backoffice:backoffice_orders"))
+
+
+def backoffice_invoice_create(request):
+    return redirect(reverse("backoffice:backoffice_orders"))
+
+
+def backoffice_invoice_update(request, invoice_id):
+    if request.method != "POST":
+        return redirect(reverse("backoffice:backoffice_orders"))
+
+    data = request.POST
+    items = _parse_order_items(data)
+    event_items = _parse_order_event_items(data)
+    order_id_text = (data.get("order_id") or "").strip()
+    invoice_number = (data.get("invoice_number") or "").strip()
+    issued_at = _parse_datetime_local((data.get("issued_at") or "").strip())
+    if not order_id_text.isdigit() or not invoice_number:
+        return redirect(reverse("backoffice:backoffice_orders"))
+
+    order_id = int(order_id_text)
+
+    with connection.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE public.invoices
+            SET order_id = %s,
+                invoice_number = %s,
+                issued_at = COALESCE(%s, issued_at)
+            WHERE invoice_id = %s;
+            """,
+            [order_id, invoice_number, issued_at, invoice_id],
+        )
+
+    _replace_order_items(order_id, items)
+    if _ensure_event_items_table():
+        _replace_order_event_items(order_id, event_items)
+
+    return redirect(reverse("backoffice:backoffice_orders"))
+
+
+def backoffice_invoice_delete(request, invoice_id):
+    if request.method != "POST":
+        return redirect(reverse("backoffice:backoffice_orders"))
+
+    with connection.cursor() as cur:
+        cur.execute("DELETE FROM public.invoices WHERE invoice_id = %s;", [invoice_id])
+
+    return redirect(reverse("backoffice:backoffice_orders"))
+
+
 def backoffice_users(request):
     q = (request.GET.get("q") or "").strip()
     role = (request.GET.get("role") or "").strip()
@@ -1246,10 +1742,39 @@ def backoffice_user_access(request):
             ORDER BY permission;
             """
         )
-        permission_items = [
-            {"permission": perm, "description": desc}
-            for perm, desc in cur.fetchall()
-        ]
+        raw_permissions = cur.fetchall()
+
+        def split_permission(value):
+            if not value:
+                return "", "", False
+            if "." in value:
+                module, functionality = value.split(".", 1)
+                return module, functionality, False
+            if ":" in value:
+                module, functionality = value.split(":", 1)
+                return module, functionality, True
+            return "", value, True
+
+        permission_items = []
+        for perm, desc in raw_permissions:
+            module, functionality, is_legacy = split_permission(perm)
+            permission_items.append(
+                {
+                    "permission": perm,
+                    "description": desc,
+                    "module": module,
+                    "functionality": functionality,
+                    "is_legacy": is_legacy,
+                }
+            )
+
+        permission_items.sort(
+            key=lambda item: (
+                item["module"] or "zz",
+                item["functionality"] or "zz",
+                item["permission"],
+            )
+        )
 
         if selected_user:
             cur.execute(
@@ -1259,6 +1784,36 @@ def backoffice_user_access(request):
             role_permissions = {row[0] for row in cur.fetchall()}
 
     if request.method == "POST" and selected_user:
+        rename_old = (request.POST.get("rename_old") or "").strip()
+        rename_new = (request.POST.get("rename_new") or "").strip()
+        rename_confirm = (request.POST.get("rename_confirm") or "").strip()
+        rename_ack = (request.POST.get("rename_ack") or "").strip()
+        if rename_old and rename_new:
+            if rename_ack != "on" or rename_confirm != rename_old:
+                return redirect(f"{request.path}?user_id={selected_user.user_id}")
+
+            if rename_new == rename_old:
+                return redirect(f"{request.path}?user_id={selected_user.user_id}")
+
+            with connection.cursor() as cur:
+                cur.execute(
+                    "SELECT 1 FROM public.role_permissions WHERE permission = %s LIMIT 1;",
+                    [rename_new],
+                )
+                if cur.fetchone():
+                    return redirect(f"{request.path}?user_id={selected_user.user_id}")
+
+                cur.execute(
+                    """
+                    UPDATE public.role_permissions
+                    SET permission = %s
+                    WHERE permission = %s;
+                    """,
+                    [rename_new, rename_old],
+                )
+
+            return redirect(f"{request.path}?user_id={selected_user.user_id}")
+
         delete_permission = (request.POST.get("delete_permission") or "").strip()
         if delete_permission:
             with connection.cursor() as cur:

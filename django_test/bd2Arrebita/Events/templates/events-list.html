@@ -1,147 +1,149 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Arrebita - Eventos{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="{% static 'css/wine-list.css' %}">
+<link rel="stylesheet" href="{% static 'css/events-community.css' %}">
 
-<section class="events-page">
-    <h1 class="page-title">Eventos</h1>
+<main class="wl-container ec-page ec-events">
+    <h1 class="wl-title">Eventos</h1>
 
-    <form class="filters" method="get">
-        <div class="filter-group">
-            <span class="filter-label">Formato</span>
-            <div class="chips">
-                <label class="chip {% if not mode %}chip--active{% endif %}">
-                    <input type="radio" name="mode" value="" {% if not mode %}checked{% endif %} onchange="this.form.submit()" style="display:none">
-                    Todos
-                </label>
-                <label class="chip {% if mode == 'online' %}chip--active{% endif %}">
-                    <input type="radio" name="mode" value="online" {% if mode == 'online' %}checked{% endif %} onchange="this.form.submit()" style="display:none">
-                    Online
-                </label>
-                <label class="chip {% if mode == 'onsite' %}chip--active{% endif %}">
-                    <input type="radio" name="mode" value="onsite" {% if mode == 'onsite' %}checked{% endif %} onchange="this.form.submit()" style="display:none">
-                    Presencial
-                </label>
-            </div>
-        </div>
+    <div class="wl-layout">
+        <aside class="wl-filters">
+            <form class="wl-filter-form" method="get">
+                <div class="wl-filter-group">
+                    <h3 class="wl-filter-title">Formato</h3>
+                    <label class="wl-check">
+                        <input type="radio" name="mode" value="" {% if not mode %}checked{% endif %}>
+                        <span>Todos</span>
+                    </label>
+                    <label class="wl-check">
+                        <input type="radio" name="mode" value="online" {% if mode == 'online' %}checked{% endif %}>
+                        <span>Online</span>
+                    </label>
+                    <label class="wl-check">
+                        <input type="radio" name="mode" value="onsite" {% if mode == 'onsite' %}checked{% endif %}>
+                        <span>Presencial</span>
+                    </label>
+                </div>
 
-        <div class="filter-group">
-            <label class="filter-label" for="price">Preco</label>
-            <select id="price" name="price" class="select" onchange="this.form.submit()">
-                <option value="">Todos</option>
-                <option value="free" {% if price == 'free' %}selected{% endif %}>Gratuito</option>
-                <option value="paid" {% if price == 'paid' %}selected{% endif %}>Pago</option>
-            </select>
-        </div>
+                <div class="wl-filter-group">
+                    <h3 class="wl-filter-title">Preco</h3>
+                    <select id="price" name="price" class="wl-select">
+                        <option value="">Todos</option>
+                        <option value="free" {% if price == 'free' %}selected{% endif %}>Gratuito</option>
+                        <option value="paid" {% if price == 'paid' %}selected{% endif %}>Pago</option>
+                    </select>
+                </div>
 
-        <div class="filter-group">
-            <label class="filter-label" for="status">Estado</label>
-            <select id="status" name="status" class="select" onchange="this.form.submit()">
-                <option value="">Todos</option>
-                <option value="published" {% if status == 'published' %}selected{% endif %}>Publicado</option>
-                <option value="draft" {% if status == 'draft' %}selected{% endif %}>Rascunho</option>
-                <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>Cancelado</option>
-                <option value="archived" {% if status == 'archived' %}selected{% endif %}>Arquivado</option>
-            </select>
-        </div>
+                <div class="wl-filter-group">
+                    <h3 class="wl-filter-title">Estado</h3>
+                    <select id="status" name="status" class="wl-select">
+                        <option value="">Todos</option>
+                        <option value="published" {% if status == 'published' %}selected{% endif %}>Publicado</option>
+                        <option value="draft" {% if status == 'draft' %}selected{% endif %}>Rascunho</option>
+                        <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>Cancelado</option>
+                        <option value="archived" {% if status == 'archived' %}selected{% endif %}>Arquivado</option>
+                    </select>
+                </div>
 
-        <div class="filter-group">
-            <label class="filter-label" for="timing">Quando</label>
-            <select id="timing" name="timing" class="select" onchange="this.form.submit()">
-                <option value="">Todos</option>
-                <option value="upcoming" {% if timing == 'upcoming' %}selected{% endif %}>Proximos</option>
-                <option value="ongoing" {% if timing == 'ongoing' %}selected{% endif %}>Em curso</option>
-                <option value="finished" {% if timing == 'finished' %}selected{% endif %}>Terminados</option>
-            </select>
-        </div>
+                <div class="wl-filter-group">
+                    <h3 class="wl-filter-title">Quando</h3>
+                    <select id="timing" name="timing" class="wl-select">
+                        <option value="">Todos</option>
+                        <option value="upcoming" {% if timing == 'upcoming' %}selected{% endif %}>Proximos</option>
+                        <option value="ongoing" {% if timing == 'ongoing' %}selected{% endif %}>Em curso</option>
+                        <option value="finished" {% if timing == 'finished' %}selected{% endif %}>Terminados</option>
+                    </select>
+                </div>
 
-        <div class="filter-group filter-order">
-            <label class="filter-label" for="sort">Ordenar</label>
-            <select id="sort" name="sort" class="select" onchange="this.form.submit()">
-                <option value="starts_at" {% if sort == 'starts_at' %}selected{% endif %}>Data (mais cedo)</option>
-                <option value="-starts_at" {% if sort == '-starts_at' %}selected{% endif %}>Data (mais tarde)</option>
-                <option value="price" {% if sort == 'price' %}selected{% endif %}>Preco (baixo)</option>
-                <option value="-price" {% if sort == '-price' %}selected{% endif %}>Preco (alto)</option>
-            </select>
-        </div>
-    </form>
+                <div class="wl-filter-group">
+                    <h3 class="wl-filter-title">Ordenar</h3>
+                    <select id="sort" name="sort" class="wl-select">
+                        <option value="starts_at" {% if sort == 'starts_at' %}selected{% endif %}>Data (mais cedo)</option>
+                        <option value="-starts_at" {% if sort == '-starts_at' %}selected{% endif %}>Data (mais tarde)</option>
+                        <option value="price" {% if sort == 'price' %}selected{% endif %}>Preco (baixo)</option>
+                        <option value="-price" {% if sort == '-price' %}selected{% endif %}>Preco (alto)</option>
+                    </select>
+                </div>
 
-    {% if events %}
-        <div class="event-list">
-            {% for event in events %}
-                <article class="event-card will-reveal">
-                    <div class="event-media">
-                        <div class="thumb"></div>
-                        <div class="badges">
-                            <span class="badge">{{ event.format_label }}</span>
-                            {% if event.status_label %}
-                                <span class="badge">{{ event.status_label }}</span>
-                            {% endif %}
-                            {% if event.timing_label %}
-                                <span class="badge">{{ event.timing_label }}</span>
-                            {% endif %}
-                        </div>
-                    </div>
+                <button class="btn btn-primary wl-apply" type="submit">Aplicar filtros</button>
+                <a href="/events" class="wl-clear">Limpar tudo</a>
+            </form>
+        </aside>
 
-                    <div class="event-body">
-                        <div class="card-topline">
-                            {% if event.capacity %}
-                                <span class="pill pill--ghost">Cap {{ event.capacity }}</span>
-                            {% endif %}
-                            {% if event.is_published %}
-                                <span class="pill pill--ghost">Publicado</span>
-                            {% endif %}
-                        </div>
-                        <h3 class="event-title">{{ event.display_title }}</h3>
-                        <div class="event-meta">
-                            <span>{{ event.starts_at|date:"d/m/Y" }} {{ event.starts_at|time:"H:i" }}</span>
-                            {% if event.ends_at %}
-                                <span>- {{ event.ends_at|date:"d/m/Y" }} {{ event.ends_at|time:"H:i" }}</span>
-                            {% endif %}
-                            {% if event.timezone %}
-                                <span>{{ event.timezone }}</span>
-                            {% endif %}
-                        </div>
-                        {% if event.location_display %}
-                            <div class="event-meta">
-                                <span>{{ event.location_display }}</span>
-                                {% if event.duration_display %}
-                                    <span>{{ event.duration_display }}</span>
+        <section class="wl-results">
+            {% if events %}
+                <div class="wl-grid">
+                    {% for event in events %}
+                        <article class="wl-card will-reveal">
+                            <a class="wl-card-media" href="{% url 'events:event_detail' event.detail_slug %}">
+                                <img src="{% static 'img/a3.png' %}" alt="{{ event.display_title }}">
+                            </a>
+                            <div class="wl-card-body">
+                                <h3 class="wl-card-title">{{ event.display_title }}</h3>
+
+                                <div class="wl-badges">
+                                    <span class="badge">{{ event.format_label }}</span>
+                                    {% if event.status_label %}<span class="badge">{{ event.status_label }}</span>{% endif %}
+                                    {% if event.timing_label %}<span class="badge">{{ event.timing_label }}</span>{% endif %}
+                                </div>
+
+                                <div class="ec-meta">
+                                    <span>{{ event.starts_at|date:"d/m/Y" }} {{ event.starts_at|time:"H:i" }}</span>
+                                    {% if event.ends_at %}
+                                        <span>- {{ event.ends_at|date:"d/m/Y" }} {{ event.ends_at|time:"H:i" }}</span>
+                                    {% endif %}
+                                    {% if event.timezone %}<span>{{ event.timezone }}</span>{% endif %}
+                                </div>
+                                {% if event.location_display %}
+                                    <div class="ec-meta">
+                                        <span>{{ event.location_display }}</span>
+                                        {% if event.duration_display %}<span>{{ event.duration_display }}</span>{% endif %}
+                                    </div>
                                 {% endif %}
+                                {% if event.summary_display %}
+                                    <p class="ec-desc">{{ event.summary_display }}</p>
+                                {% endif %}
+
+                                <div class="wl-meta">
+                                    <span class="ec-meta">{% if event.capacity %}Cap {{ event.capacity }}{% else %}&nbsp;{% endif %}</span>
+                                    <span class="wl-price-tag">{{ event.price_display }}</span>
+                                </div>
+
+                                <div class="wl-card-actions">
+                                    <a class="btn btn-primary btn-block" href="{% url 'events:event_detail' event.detail_slug %}">Ver detalhes</a>
+                                    <form method="post" action="/cart/add/" class="wl-cart-add">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="item_type" value="event">
+                                        <input type="hidden" name="event_id" value="{{ event.event_id }}">
+                                        <input type="hidden" name="qty" value="1">
+                                        <input type="hidden" name="next" value="{{ request.path }}{% if querystring %}?{{ querystring }}{% endif %}">
+                                        <button class="btn btn-ghost btn-block" type="submit">
+                                            {% if event.is_free %}Adicionar bilhete gratuito{% else %}Adicionar bilhete{% endif %}
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
+                        </article>
+                    {% endfor %}
+                </div>
+
+                {% if is_paginated %}
+                    <nav class="wl-pagination">
+                        {% if page_obj.has_previous %}
+                            <a class="wl-page" href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Anterior</a>
                         {% endif %}
-                        {% if event.summary_display %}
-                            <p class="event-desc">{{ event.summary_display }}</p>
+                        <span class="wl-page is-current">Pagina {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                        {% if page_obj.has_next %}
+                            <a class="wl-page" href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Seguinte</a>
                         {% endif %}
-                    </div>
-
-                    <aside class="event-aside">
-                        <div class="price">{{ event.price_display }}</div>
-                        <a class="btn-buy" href="{{ event.cta_url }}">{{ event.cta_label }}</a>
-                    </aside>
-                </article>
-            {% endfor %}
-        </div>
-    {% else %}
-        <p>Nao existem eventos para os filtros atuais.</p>
-    {% endif %}
-
-    {% if is_paginated %}
-        <nav class="pagination">
-            {% if page_obj.has_previous %}
-                <a class="page-btn" href="?page={{ page_obj.previous_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Anterior</a>
+                    </nav>
+                {% endif %}
             {% else %}
-                <span class="page-btn disabled">Anterior</span>
+                <p class="wl-empty">Nao existem eventos para os filtros atuais.</p>
             {% endif %}
-
-            <span class="page-btn current">Pagina {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
-
-            {% if page_obj.has_next %}
-                <a class="page-btn" href="?page={{ page_obj.next_page_number }}{% if querystring %}&{{ querystring }}{% endif %}">Seguinte</a>
-            {% else %}
-                <span class="page-btn disabled">Seguinte</span>
-            {% endif %}
-        </nav>
-    {% endif %}
-</section>
-
+        </section>
+    </div>
+</main>
 {% endblock %}

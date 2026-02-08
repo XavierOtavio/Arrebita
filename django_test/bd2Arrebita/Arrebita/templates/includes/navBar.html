@@ -5,18 +5,24 @@
             <img src="{% static 'img/logo.png' %}" alt="Arrebita" />
         </a>
         <nav class="main-nav">
-            <a href="/" class="nav-link active">Home</a>
-            <a href="/wines" class="nav-link">Vinhos</a>
-            <a href="/events" class="nav-link">Eventos</a>
-            <a href="/comunidade" class="nav-link">Comunidade</a>
+            <a href="/" class="nav-link{% if request.path == '/' %} active{% endif %}">Home</a>
+            <a href="/wines" class="nav-link{% if request.path|slice:':6' == '/wines' %} active{% endif %}">Vinhos</a>
+            <a href="/events" class="nav-link{% if request.path|slice:':7' == '/events' %} active{% endif %}">Eventos</a>
+            <a href="/comunidade" class="nav-link{% if request.path|slice:':11' == '/comunidade' %} active{% endif %}">Comunidade</a>
+            <a href="/cart" class="nav-link nav-cart{% if request.path|slice:':5' == '/cart' or request.path|slice:':9' == '/checkout' %} active{% endif %}">
+                Carrinho
+                {% if request.cart_count %}
+                    <span class="nav-cart-badge">{{ request.cart_count }}</span>
+                {% endif %}
+            </a>
             {% if request.current_user %}
-                <a href="/perfil" class="nav-link">Perfil</a>
+                <a href="/perfil" class="nav-link{% if request.path|slice:':7' == '/perfil' %} active{% endif %}">Perfil</a>
                 <a href="/logout" class="nav-link">Sair</a>
             {% else %}
-                <a href="/login" class="nav-link">Login</a>
+                <a href="/login" class="nav-link{% if request.path|slice:':6' == '/login' %} active{% endif %}">Login</a>
             {% endif %}
             {% if request.can_backoffice %}
-                <a href="/backoffice" class="nav-link">Admin</a>
+                <a href="/backoffice" class="nav-link{% if request.path|slice:':11' == '/backoffice' %} active{% endif %}">Admin</a>
             {% endif %}
         </nav>
         <button class="nav-toggle" aria-label="Abrir menu">&#9776;</button>

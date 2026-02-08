@@ -11,7 +11,6 @@ class Order(models.Model):
     billing_name = models.CharField(max_length=200, blank=True, null=True)
     billing_nif = models.CharField(max_length=32, blank=True, null=True)
     billing_address = models.TextField(blank=True, null=True)
-    invoice_url = models.TextField(blank=True, null=True)
 
     class Meta:
         managed = False
@@ -28,11 +27,42 @@ class Invoice(models.Model):
     )
     issued_at = models.DateTimeField()
     invoice_number = models.CharField(max_length=64, unique=True)
-    invoice_url = models.TextField(blank=True, null=True)
 
     class Meta:
         managed = False
         db_table = 'invoices'
+
+
+class OrderItem(models.Model):
+    order_item_id = models.AutoField(primary_key=True)
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        db_column='order_id',
+        related_name='items',
+    )
+    wine_id = models.UUIDField()
+    quantity = models.IntegerField()
+
+    class Meta:
+        managed = False
+        db_table = 'order_items'
+
+
+class OrderEventItem(models.Model):
+    order_event_item_id = models.AutoField(primary_key=True)
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        db_column='order_id',
+        related_name='event_items',
+    )
+    event_id = models.UUIDField()
+    quantity = models.IntegerField()
+
+    class Meta:
+        managed = False
+        db_table = 'order_event_items'
 
 
 class VwOrderSummary(models.Model):
@@ -58,7 +88,6 @@ class VwInvoiceSummary(models.Model):
     invoice_id = models.IntegerField(primary_key=True)
     invoice_number = models.CharField(max_length=64)
     issued_at = models.DateTimeField()
-    invoice_url = models.TextField(blank=True, null=True)
     order_id = models.IntegerField()
     order_number = models.CharField(max_length=64)
     billing_name = models.CharField(max_length=200)

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Arrebita - Checkout{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/cart.css' %}">
+
+<section class="checkout-page">
+    <header class="cart-header">
+        <div>
+            <span class="cart-kicker">Checkout</span>
+            <h1>Validar encomenda</h1>
+            <p>Preenche os dados de faturacao e confirma.</p>
+        </div>
+        <div class="cart-header-meta">
+            <span>{{ items_count }} itens</span>
+            <span>Total: EUR {{ total|floatformat:2 }}</span>
+        </div>
+    </header>
+
+    <div class="checkout-grid">
+        <form method="post" class="checkout-form">
+            {% csrf_token %}
+            <div class="checkout-panel">
+                <h2>Dados de faturacao</h2>
+                <div class="checkout-fields">
+                    <div class="checkout-field">
+                        <label for="billing_name">Nome completo</label>
+                        <input id="billing_name" name="billing_name" type="text" value="{{ billing_name }}" required>
+                    </div>
+                    <div class="checkout-field">
+                        <label for="billing_nif">NIF</label>
+                        <input id="billing_nif" name="billing_nif" type="text" placeholder="Opcional" value="{{ billing_nif }}">
+                    </div>
+                    <div class="checkout-field checkout-field-full">
+                        <label for="billing_address">Morada</label>
+                        <textarea id="billing_address" name="billing_address" rows="3" required>{{ billing_address }}</textarea>
+                    </div>
+                </div>
+                {% if error %}
+                <p class="checkout-error">{{ error }}</p>
+                {% endif %}
+            </div>
+
+            <div class="checkout-panel">
+                <h2>Pagamento</h2>
+                <p class="checkout-muted">Pagamento simulado. Ao pagar, seguimos para confirmacao.</p>
+                <div class="checkout-payment-card">
+                    <span>Metodo</span>
+                    <strong>Simulacao</strong>
+                </div>
+            </div>
+
+            <div class="checkout-actions">
+                <button class="btn btn-primary" type="submit" name="pay_now" value="1">Pagar agora</button>
+                <a class="btn btn-ghost" href="/cart/">Voltar ao carrinho</a>
+            </div>
+        </form>
+
+        <aside class="checkout-summary">
+            <div class="cart-panel">
+                <h2>Resumo</h2>
+                <div class="checkout-items">
+                    {% for item in items %}
+                    <div class="checkout-item">
+                        <div>
+                            {% if item.kind == "event" %}
+                                <strong>{{ item.event.display_title }}</strong>
+                            {% else %}
+                                <strong>{{ item.wine.name }}</strong>
+                            {% endif %}
+                            <span>{{ item.quantity }} x EUR {{ item.unit_price|floatformat:2 }}</span>
+                        </div>
+                        <span>EUR {{ item.line_total|floatformat:2 }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="cart-summary-row">
+                    <span>Total</span>
+                    <strong>EUR {{ total|floatformat:2 }}</strong>
+                </div>
+            </div>
+        </aside>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,793 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static '/css/backoffice.css' %}">
+
+<section class="bo-wrapper">
+    <header class="bo-header">
+        <div class="bo-header-left">
+            <h1 class="bo-title">Encomendas</h1>
+            <p class="bo-subtitle">Gestao de encomendas e faturas.</p>
+        </div>
+        <div class="bo-header-badge">
+            <span class="bo-dot"></span>
+            Ambiente de desenvolvimento
+        </div>
+    </header>
+
+    <section class="bo-section">
+        <h2 class="bo-section-title">Filtrar encomendas</h2>
+        <form method="get" class="bo-filters-form">
+            <div class="bo-filters-grid">
+                <div class="bo-field">
+                    <label for="q">Pesquisa</label>
+                    <input type="text" id="q" name="q" placeholder="Numero da encomenda" value="{{ q }}">
+                </div>
+                <div class="bo-field">
+                    <label for="status">Estado</label>
+                    {% if order_statuses %}
+                        <select id="status" name="status">
+                            <option value="">Todos</option>
+                            {% for item in order_statuses %}
+                            <option value="{{ item }}" {% if status == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    {% else %}
+                        <input type="text" id="status" name="status" value="{{ status }}">
+                    {% endif %}
+                </div>
+                <div class="bo-field">
+                    <label for="kind">Tipo</label>
+                    {% if order_kinds %}
+                        <select id="kind" name="kind">
+                            <option value="">Todos</option>
+                            {% for item in order_kinds %}
+                            <option value="{{ item }}" {% if kind == item %}selected{% endif %}>{{ item }}</option>
+                            {% endfor %}
+                        </select>
+                    {% else %}
+                        <input type="text" id="kind" name="kind" value="{{ kind }}">
+                    {% endif %}
+                </div>
+                <div class="bo-field">
+                    <label for="user">Cliente (id/email)</label>
+                    <input type="text" id="user" name="user" placeholder="ID ou email" value="{{ user_filter }}">
+                </div>
+            </div>
+            <div class="bo-filters-actions">
+                <button type="submit" class="bo-btn-primary">Aplicar filtros</button>
+                <a href="{% url 'backoffice:backoffice_orders' %}" class="bo-btn-secondary">Limpar</a>
+            </div>
+        </form>
+    </section>
+
+    <section class="bo-section">
+        <div class="bo-section-header">
+            <h2 class="bo-section-title">Lista de encomendas</h2>
+            <div class="bo-actions">
+                <button class="bo-btn-primary" data-modal-target="#modal-create-order">
+                    + Adicionar encomenda
+                </button>
+            </div>
+        </div>
+
+        {% if orders %}
+        <div class="bo-table-wrapper">
+            <table class="bo-table">
+                <thead>
+                <tr>
+                    <th>Numero</th>
+                    <th>Cliente</th>
+                    <th>Estado</th>
+                    <th>Tipo</th>
+                    <th>Criada</th>
+                    <th>Atualizada</th>
+                    <th>Fatura</th>
+                    <th>Acoes</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_number }}</td>
+                    <td>
+                        {% if order.user_obj %}
+                            {{ order.user_obj.full_name }} ({{ order.user_obj.email }})
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ order.status }}</td>
+                    <td>{{ order.kind }}</td>
+                    <td>{{ order.created_at|date:"d/m/Y H:i" }}</td>
+                    <td>{{ order.updated_at|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        {% if order.invoice %}
+                            <a class="bo-link" href="{% url 'invoice_pdf' order.invoice.invoice_id %}" target="_blank" rel="noopener">
+                                PDF {{ order.invoice.invoice_number }}
+                            </a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td class="bo-actions">
+                        <button class="bo-link" data-modal-target="#modal-edit-order-{{ order.order_id }}">
+                            Editar
+                        </button>
+                        <form method="post" action="{% url 'backoffice:backoffice_order_delete' order.order_id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="bo-link bo-danger"
+                                    onclick="return confirm('Remover esta encomenda?');">
+                                Remover
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="bo-empty">Nao existem encomendas.</p>
+        {% endif %}
+    </section>
+
+    <section class="bo-section">
+        <div class="bo-section-header">
+            <h2 class="bo-section-title">Faturas</h2>
+        </div>
+        <p class="bo-footnote">As faturas sao criadas automaticamente quando a encomenda passa a paid.</p>
+
+        {% if invoices %}
+        <div class="bo-table-wrapper">
+            <table class="bo-table">
+                <thead>
+                <tr>
+                    <th>Numero</th>
+                    <th>Encomenda</th>
+                    <th>Cliente</th>
+                    <th>Emitida</th>
+                    <th>PDF</th>
+                    <th>Acoes</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td>{{ invoice.invoice_number }}</td>
+                    <td>{{ invoice.order.order_number }}</td>
+                    <td>{{ invoice.order.user_id|default:"-" }}</td>
+                    <td>{{ invoice.issued_at|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <a class="bo-link" href="{% url 'invoice_pdf' invoice.invoice_id %}" target="_blank" rel="noopener">PDF</a>
+                    </td>
+                    <td class="bo-actions">
+                        <button class="bo-link" data-modal-target="#modal-edit-invoice-{{ invoice.invoice_id }}">
+                            Editar
+                        </button>
+                        <form method="post" action="{% url 'backoffice:backoffice_invoice_delete' invoice.invoice_id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="bo-link bo-danger"
+                                    onclick="return confirm('Remover esta fatura?');">
+                                Remover
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="bo-empty">Nao existem faturas.</p>
+        {% endif %}
+    </section>
+
+    <section id="modal-create-order" class="bo-modal" hidden>
+        <div class="bo-modal-content">
+            <header class="bo-modal-header">
+                <h3>Nova encomenda</h3>
+            </header>
+            <form method="post" action="{% url 'backoffice:backoffice_order_create' %}" class="bo-form">
+                {% csrf_token %}
+                <div class="bo-tabs" data-tab-group="order-create">
+                    <button type="button" class="bo-tab is-active" data-tab-target="#order-create-details">
+                        Detalhes
+                    </button>
+                    <button type="button" class="bo-tab" data-tab-target="#order-create-items">
+                        Itens
+                    </button>
+                </div>
+
+                <div id="order-create-details" class="bo-tab-panel is-active" data-tab-group="order-create">
+                    <div class="bo-form-grid">
+                        <div class="bo-field">
+                            <label>Numero</label>
+                            <input type="text" name="order_number" required>
+                        </div>
+                        <div class="bo-field">
+                            <label>Cliente</label>
+                            <select name="user_id">
+                                <option value="">Sem cliente</option>
+                                {% for user in users %}
+                                <option value="{{ user.user_id }}">{{ user.full_name }} ({{ user.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="bo-field">
+                            <label>Tipo</label>
+                            {% if order_kinds %}
+                                <select name="kind" required>
+                                    {% for item in order_kinds %}
+                                    <option value="{{ item }}">{{ item }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% else %}
+                                <input type="text" name="kind" required>
+                            {% endif %}
+                        </div>
+                        <div class="bo-field">
+                            <label>Estado</label>
+                            {% if order_statuses %}
+                                <select name="status" required>
+                                    {% for item in order_statuses %}
+                                    <option value="{{ item }}">{{ item }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% else %}
+                                <input type="text" name="status" required>
+                            {% endif %}
+                        </div>
+                        <div class="bo-field">
+                            <label>Nome faturacao</label>
+                            <input type="text" name="billing_name">
+                        </div>
+                        <div class="bo-field">
+                            <label>NIF</label>
+                            <input type="text" name="billing_nif">
+                        </div>
+                        <div class="bo-field bo-field-full">
+                            <label>Morada faturacao</label>
+                            <textarea name="billing_address" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="order-create-items" class="bo-tab-panel" data-tab-group="order-create">
+                    <div class="bo-items-table">
+                        <h4>Vinhos</h4>
+                        <table class="bo-table">
+                            <thead>
+                            <tr>
+                                <th>Vinho</th>
+                                <th>Quantidade</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody id="items-body-create">
+                                <tr>
+                                    <td>
+                                        <select name="item_wine_id">
+                                            <option value="">Selecionar vinho</option>
+                                            {% for wine in wines %}
+                                            <option value="{{ wine.wine_id }}">{{ wine.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="item_qty" min="1" value="1">
+                                    </td>
+                                    <td>
+                                        <button type="button" class="bo-link bo-danger" data-remove-item>Remover</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="bo-btn-secondary" data-add-item="#items-body-create" data-item-template="order-item-row-template">
+                        + Adicionar vinho
+                    </button>
+
+                    <div class="bo-items-table">
+                        <h4>Bilhetes</h4>
+                        <table class="bo-table">
+                            <thead>
+                            <tr>
+                                <th>Evento</th>
+                                <th>Quantidade</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody id="events-body-create">
+                                <tr>
+                                    <td>
+                                        <select name="item_event_id">
+                                            <option value="">Selecionar evento</option>
+                                            {% for event in events %}
+                                            <option value="{{ event.event_id }}">
+                                                {{ event.display_title }}{% if event.starts_at %} ({{ event.starts_at|date:"d/m/Y" }}){% endif %}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="item_event_qty" min="1" value="1">
+                                    </td>
+                                    <td>
+                                        <button type="button" class="bo-link bo-danger" data-remove-item>Remover</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="bo-btn-secondary" data-add-item="#events-body-create" data-item-template="order-event-item-row-template">
+                        + Adicionar bilhete
+                    </button>
+                </div>
+                <footer class="bo-modal-footer">
+                    <button class="bo-btn-primary">Guardar</button>
+                    <button type="button" class="bo-btn-secondary" data-modal-close="#modal-create-order">
+                        Cancelar
+                    </button>
+                </footer>
+            </form>
+        </div>
+    </section>
+
+    {% for order in orders %}
+    <section id="modal-edit-order-{{ order.order_id }}" class="bo-modal" hidden>
+        <div class="bo-modal-content">
+            <header class="bo-modal-header">
+                <h3>Editar encomenda {{ order.order_number }}</h3>
+            </header>
+            <form method="post" action="{% url 'backoffice:backoffice_order_update' order.order_id %}" class="bo-form">
+                {% csrf_token %}
+                <div class="bo-tabs" data-tab-group="order-{{ order.order_id }}">
+                    <button type="button" class="bo-tab is-active" data-tab-target="#order-{{ order.order_id }}-details">
+                        Detalhes
+                    </button>
+                    <button type="button" class="bo-tab" data-tab-target="#order-{{ order.order_id }}-items">
+                        Itens
+                    </button>
+                </div>
+
+                <div id="order-{{ order.order_id }}-details" class="bo-tab-panel is-active" data-tab-group="order-{{ order.order_id }}">
+                    <div class="bo-form-grid">
+                        <div class="bo-field">
+                            <label>Numero</label>
+                            <input type="text" name="order_number" value="{{ order.order_number }}" required>
+                        </div>
+                        <div class="bo-field">
+                            <label>Cliente</label>
+                            <select name="user_id">
+                                <option value="">Sem cliente</option>
+                                {% for user in users %}
+                                <option value="{{ user.user_id }}" {% if order.user_id == user.user_id %}selected{% endif %}>
+                                    {{ user.full_name }} ({{ user.email }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="bo-field">
+                            <label>Tipo</label>
+                            {% if order_kinds %}
+                                <select name="kind" required>
+                                    {% for item in order_kinds %}
+                                    <option value="{{ item }}" {% if order.kind == item %}selected{% endif %}>{{ item }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% else %}
+                                <input type="text" name="kind" value="{{ order.kind }}" required>
+                            {% endif %}
+                        </div>
+                        <div class="bo-field">
+                            <label>Estado</label>
+                            {% if order_statuses %}
+                                <select name="status" required>
+                                    {% for item in order_statuses %}
+                                    <option value="{{ item }}" {% if order.status == item %}selected{% endif %}>{{ item }}</option>
+                                    {% endfor %}
+                                </select>
+                            {% else %}
+                                <input type="text" name="status" value="{{ order.status }}" required>
+                            {% endif %}
+                        </div>
+                        <div class="bo-field">
+                            <label>Nome faturacao</label>
+                            <input type="text" name="billing_name" value="{{ order.billing_name }}">
+                        </div>
+                        <div class="bo-field">
+                            <label>NIF</label>
+                            <input type="text" name="billing_nif" value="{{ order.billing_nif }}">
+                        </div>
+                        <div class="bo-field bo-field-full">
+                            <label>Morada faturacao</label>
+                            <textarea name="billing_address" rows="2">{{ order.billing_address }}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="order-{{ order.order_id }}-items" class="bo-tab-panel" data-tab-group="order-{{ order.order_id }}">
+                    <div class="bo-items-table">
+                        <h4>Vinhos</h4>
+                        <table class="bo-table">
+                            <thead>
+                            <tr>
+                                <th>Vinho</th>
+                                <th>Quantidade</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody id="items-body-{{ order.order_id }}">
+                                {% if order.items_list %}
+                                    {% for item in order.items_list %}
+                                    <tr>
+                                        <td>
+                                            <select name="item_wine_id">
+                                                <option value="">Selecionar vinho</option>
+                                                {% for wine in wines %}
+                                                <option value="{{ wine.wine_id }}" {% if item.wine_id == wine.wine_id %}selected{% endif %}>
+                                                    {{ wine.name }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="item_qty" min="1" value="{{ item.quantity }}">
+                                        </td>
+                                        <td>
+                                            <button type="button" class="bo-link bo-danger" data-remove-item>Remover</button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td>
+                                            <select name="item_wine_id">
+                                                <option value="">Selecionar vinho</option>
+                                                {% for wine in wines %}
+                                                <option value="{{ wine.wine_id }}">{{ wine.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="item_qty" min="1" value="1">
+                                        </td>
+                                        <td>
+                                            <button type="button" class="bo-link bo-danger" data-remove-item>Remover</button>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="bo-btn-secondary" data-add-item="#items-body-{{ order.order_id }}" data-item-template="order-item-row-template">
+                        + Adicionar vinho
+                    </button>
+
+                    <div class="bo-items-table">
+                        <h4>Bilhetes</h4>
+                        <table class="bo-table">
+                            <thead>
+                            <tr>
+                                <th>Evento</th>
+                                <th>Quantidade</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody id="events-body-{{ order.order_id }}">
+                                {% if order.event_items_list %}
+                                    {% for item in order.event_items_list %}
+                                    <tr>
+                                        <td>
+                                            <select name="item_event_id">
+                                                <option value="">Selecionar evento</option>
+                                                {% for event in events %}
+                                                <option value="{{ event.event_id }}" {% if item.event_id == event.event_id %}selected{% endif %}>
+                                                    {{ event.display_title }}{% if event.starts_at %} ({{ event.starts_at|date:"d/m/Y" }}){% endif %}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="item_event_qty" min="1" value="{{ item.quantity }}">
+                                        </td>
+                                        <td>
+                                            <button type="button" class="bo-link bo-danger" data-remove-item>Remover</button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td>
+                                            <select name="item_event_id">
+                                                <option value="">Selecionar evento</option>
+                                                {% for event in events %}
+                                                <option value="{{ event.event_id }}">
+                                                    {{ event.display_title }}{% if event.starts_at %} ({{ event.starts_at|date:"d/m/Y" }}){% endif %}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="item_event_qty" min="1" value="1">
+                                        </td>
+                                        <td>
+                                            <button type="button" class="bo-link bo-danger" data-remove-item>Remover</button>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="bo-btn-secondary" data-add-item="#events-body-{{ order.order_id }}" data-item-template="order-event-item-row-template">
+                        + Adicionar bilhete
+                    </button>
+                </div>
+                <footer class="bo-modal-footer">
+                    <button class="bo-btn-primary">Guardar alteracoes</button>
+                    <button type="button" class="bo-btn-secondary" data-modal-close="#modal-edit-order-{{ order.order_id }}">
+                        Cancelar
+                    </button>
+                </footer>
+            </form>
+        </div>
+    </section>
+    {% endfor %}
+
+
+    {% for invoice in invoices %}
+    <section id="modal-edit-invoice-{{ invoice.invoice_id }}" class="bo-modal" hidden>
+        <div class="bo-modal-content">
+            <header class="bo-modal-header">
+                <h3>Editar fatura {{ invoice.invoice_number }}</h3>
+            </header>
+            <form method="post" action="{% url 'backoffice:backoffice_invoice_update' invoice.invoice_id %}" class="bo-form">
+                {% csrf_token %}
+                <div class="bo-tabs" data-tab-group="invoice-{{ invoice.invoice_id }}">
+                    <button type="button" class="bo-tab is-active" data-tab-target="#invoice-{{ invoice.invoice_id }}-details">
+                        Detalhes
+                    </button>
+                    <button type="button" class="bo-tab" data-tab-target="#invoice-{{ invoice.invoice_id }}-items">
+                        Itens
+                    </button>
+                </div>
+
+                <div id="invoice-{{ invoice.invoice_id }}-details" class="bo-tab-panel is-active" data-tab-group="invoice-{{ invoice.invoice_id }}">
+                    <div class="bo-form-grid">
+                        <div class="bo-field">
+                            <label>Encomenda (ID)</label>
+                            <input type="number" name="order_id" value="{{ invoice.order_id }}" required>
+                        </div>
+                        <div class="bo-field">
+                            <label>Numero da fatura</label>
+                            <input type="text" name="invoice_number" value="{{ invoice.invoice_number }}" required>
+                        </div>
+                        <div class="bo-field">
+                            <label>Emitida em</label>
+                            <input type="datetime-local"
+                                   name="issued_at"
+                                   value="{% if invoice.issued_at %}{{ invoice.issued_at|date:'Y-m-d\\TH:i' }}{% endif %}">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="invoice-{{ invoice.invoice_id }}-items" class="bo-tab-panel" data-tab-group="invoice-{{ invoice.invoice_id }}">
+                    <div class="bo-items-table">
+                        <h4>Vinhos</h4>
+                        <table class="bo-table">
+                            <thead>
+                            <tr>
+                                <th>Vinho</th>
+                                <th>Quantidade</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody id="items-body-invoice-{{ invoice.invoice_id }}">
+                                {% if invoice.items_list %}
+                                    {% for item in invoice.items_list %}
+                                    <tr>
+                                        <td>
+                                            <select name="item_wine_id">
+                                                <option value="">Selecionar vinho</option>
+                                                {% for wine in wines %}
+                                                <option value="{{ wine.wine_id }}" {% if item.wine_id == wine.wine_id %}selected{% endif %}>
+                                                    {{ wine.name }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="item_qty" min="1" value="{{ item.quantity }}">
+                                        </td>
+                                        <td>
+                                            <button type="button" class="bo-link bo-danger" data-remove-item>Remover</button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td>
+                                            <select name="item_wine_id">
+                                                <option value="">Selecionar vinho</option>
+                                                {% for wine in wines %}
+                                                <option value="{{ wine.wine_id }}">{{ wine.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="item_qty" min="1" value="1">
+                                        </td>
+                                        <td>
+                                            <button type="button" class="bo-link bo-danger" data-remove-item>Remover</button>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="bo-btn-secondary" data-add-item="#items-body-invoice-{{ invoice.invoice_id }}" data-item-template="order-item-row-template">
+                        + Adicionar vinho
+                    </button>
+
+                    <div class="bo-items-table">
+                        <h4>Bilhetes</h4>
+                        <table class="bo-table">
+                            <thead>
+                            <tr>
+                                <th>Evento</th>
+                                <th>Quantidade</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody id="events-body-invoice-{{ invoice.invoice_id }}">
+                                {% if invoice.event_items_list %}
+                                    {% for item in invoice.event_items_list %}
+                                    <tr>
+                                        <td>
+                                            <select name="item_event_id">
+                                                <option value="">Selecionar evento</option>
+                                                {% for event in events %}
+                                                <option value="{{ event.event_id }}" {% if item.event_id == event.event_id %}selected{% endif %}>
+                                                    {{ event.display_title }}{% if event.starts_at %} ({{ event.starts_at|date:"d/m/Y" }}){% endif %}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="item_event_qty" min="1" value="{{ item.quantity }}">
+                                        </td>
+                                        <td>
+                                            <button type="button" class="bo-link bo-danger" data-remove-item>Remover</button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td>
+                                            <select name="item_event_id">
+                                                <option value="">Selecionar evento</option>
+                                                {% for event in events %}
+                                                <option value="{{ event.event_id }}">
+                                                    {{ event.display_title }}{% if event.starts_at %} ({{ event.starts_at|date:"d/m/Y" }}){% endif %}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="number" name="item_event_qty" min="1" value="1">
+                                        </td>
+                                        <td>
+                                            <button type="button" class="bo-link bo-danger" data-remove-item>Remover</button>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="bo-btn-secondary" data-add-item="#events-body-invoice-{{ invoice.invoice_id }}" data-item-template="order-event-item-row-template">
+                        + Adicionar bilhete
+                    </button>
+                </div>
+                <footer class="bo-modal-footer">
+                    <button class="bo-btn-primary">Guardar alteracoes</button>
+                    <button type="button" class="bo-btn-secondary" data-modal-close="#modal-edit-invoice-{{ invoice.invoice_id }}">
+                        Cancelar
+                    </button>
+                </footer>
+            </form>
+        </div>
+    </section>
+    {% endfor %}
+</section>
+
+<template id="order-item-row-template">
+    <tr>
+        <td>
+            <select name="item_wine_id">
+                <option value="">Selecionar vinho</option>
+                {% for wine in wines %}
+                <option value="{{ wine.wine_id }}">{{ wine.name }}</option>
+                {% endfor %}
+            </select>
+        </td>
+        <td>
+            <input type="number" name="item_qty" min="1" value="1">
+        </td>
+        <td>
+            <button type="button" class="bo-link bo-danger" data-remove-item>Remover</button>
+        </td>
+    </tr>
+</template>
+
+<template id="order-event-item-row-template">
+    <tr>
+        <td>
+            <select name="item_event_id">
+                <option value="">Selecionar evento</option>
+                {% for event in events %}
+                <option value="{{ event.event_id }}">
+                    {{ event.display_title }}{% if event.starts_at %} ({{ event.starts_at|date:"d/m/Y" }}){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </td>
+        <td>
+            <input type="number" name="item_event_qty" min="1" value="1">
+        </td>
+        <td>
+            <button type="button" class="bo-link bo-danger" data-remove-item>Remover</button>
+        </td>
+    </tr>
+</template>
+
+<script>
+    document.addEventListener("click", function (e) {
+        const targetOpen = e.target.getAttribute("data-modal-target");
+        if (targetOpen) {
+            const el = document.querySelector(targetOpen);
+            if (el) el.hidden = false;
+        }
+        const targetClose = e.target.getAttribute("data-modal-close");
+        if (targetClose) {
+            const el = document.querySelector(targetClose);
+            if (el) el.hidden = true;
+        }
+
+        const tabTarget = e.target.getAttribute("data-tab-target");
+        if (tabTarget) {
+            const tabs = e.target.closest(".bo-tabs");
+            const group = tabs ? tabs.getAttribute("data-tab-group") : null;
+            if (tabs) {
+                tabs.querySelectorAll(".bo-tab").forEach((btn) => btn.classList.remove("is-active"));
+                e.target.classList.add("is-active");
+            }
+            if (group) {
+                document
+                    .querySelectorAll('.bo-tab-panel[data-tab-group="' + group + '"]')
+                    .forEach((panel) => panel.classList.remove("is-active"));
+            }
+            const panel = document.querySelector(tabTarget);
+            if (panel) panel.classList.add("is-active");
+        }
+
+        const addTarget = e.target.getAttribute("data-add-item");
+        if (addTarget) {
+            const tbody = document.querySelector(addTarget);
+            const templateId = e.target.getAttribute("data-item-template") || "order-item-row-template";
+            const template = document.getElementById(templateId);
+            if (tbody && template && template.content.firstElementChild) {
+                const clone = template.content.firstElementChild.cloneNode(true);
+                tbody.appendChild(clone);
+            }
+        }
+
+        if (e.target.hasAttribute("data-remove-item")) {
+            const row = e.target.closest("tr");
+            if (row) row.remove();
+        }
+    });
+</script>
+
+{% endblock %}

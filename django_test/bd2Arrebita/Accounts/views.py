@@ -3,6 +3,7 @@ from django.shortcuts import render, redirect
 from django.utils import timezone
 
 from .models import User
+from Orders.models import Order, Invoice
 
 
 def _now_naive():
@@ -101,6 +102,73 @@ def profile(request):
     if not user:
         return redirect("/login/?next=/perfil/")
 
+    orders = list(Order.objects.filter(user_id=user.user_id).order_by("-created_at"))
+    invoices = list(
+        Invoice.objects.filter(order__in=orders)
+        .select_related("order")
+        .order_by("-issued_at")
+    )
+
+    invoice_map = {invoice.order_id: invoice for invoice in invoices}
+    for order in orders:
+        order.invoice = invoice_map.get(order.order_id)
+
+    stats = {
+        "orders_total": 0,
+        "invoices_total": 0,
+        "items_total": 0,
+        "spend_total": 0,
+        "last_order_at": None,
+        "last_invoice_at": None,
+    }
+    try:
+        with connection.cursor() as cur:
+            cur.execute(
+                """
+                SELECT COUNT(*), MAX(created_at)
+                FROM public.orders
+                WHERE user_id = %s;
+                """,
+                [user.user_id],
+            )
+            row = cur.fetchone()
+            if row:
+                stats["orders_total"] = row[0] or 0
+                stats["last_order_at"] = row[1]
+
+            cur.execute(
+                """
+                SELECT COUNT(*), MAX(issued_at)
+                FROM public.invoices i
+                JOIN public.orders o ON o.order_id = i.order_id
+                WHERE o.user_id = %s;
+                """,
+                [user.user_id],
+            )
+            row = cur.fetchone()
+            if row:
+                stats["invoices_total"] = row[0] or 0
+                stats["last_invoice_at"] = row[1]
+
+            cur.execute(
+                """
+                SELECT
+                    COALESCE(SUM(oi.quantity), 0) AS items_total,
+                    COALESCE(SUM(oi.quantity * w.price), 0) AS spend_total
+                FROM public.order_items oi
+                JOIN public.orders o ON o.order_id = oi.order_id
+                LEFT JOIN public.vw_wine_list w ON w.wine_id = oi.wine_id
+                WHERE o.user_id = %s;
+                """,
+                [user.user_id],
+            )
+            row = cur.fetchone()
+            if row:
+                stats["items_total"] = row[0] or 0
+                stats["spend_total"] = row[1] or 0
+    except Exception:
+        pass
+
     if request.method == "POST":
         full_name = (request.POST.get("full_name") or "").strip()
         email = (request.POST.get("email") or "").strip()
@@ -114,4 +182,13 @@ def profile(request):
 
         return redirect("/perfil/")
 
-    return render(request, "profile.html", {"user": user})
+    return render(
+        request,
+        "profile.html",
+        {
+            "user": user,
+            "orders": orders,
+            "invoices": invoices,
+            "stats": stats,
+        },
+    )

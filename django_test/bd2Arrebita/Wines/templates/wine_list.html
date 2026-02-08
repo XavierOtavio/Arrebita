@@ -123,6 +123,14 @@
                                     <a class="btn btn-primary btn-block" href="{% url 'wine:wine_detail' wine.wine_id %}">
                                         Ver detalhes
                                     </a>
+                                    <form method="post" action="/cart/add/" class="wl-cart-add">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="item_type" value="wine">
+                                        <input type="hidden" name="wine_id" value="{{ wine.wine_id }}">
+                                        <input type="hidden" name="qty" value="1">
+                                        <input type="hidden" name="next" value="{{ request.path }}{% if querystring %}?{{ querystring }}{% endif %}">
+                                        <button class="btn btn-ghost btn-block" type="submit">Adicionar ao carrinho</button>
+                                    </form>
                                 </div>
                             </div>
                         </article>

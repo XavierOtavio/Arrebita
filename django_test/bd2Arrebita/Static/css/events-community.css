@@ -1,0 +1,71 @@
+.ec-page .wl-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ec-page .ec-label {
+    font-size: 0.85rem;
+    color: var(--muted);
+}
+
+.ec-page .ec-input,
+.ec-page .ec-textarea {
+    width: 100%;
+    background: #0f1216;
+    border: 1px solid rgba(255, 255, 255, .07);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px 12px;
+    outline: none;
+}
+
+.ec-page .ec-textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.ec-page .ec-input:focus,
+.ec-page .ec-textarea:focus,
+.ec-page .wl-select:focus {
+    border-color: rgba(211, 163, 84, .45);
+    box-shadow: 0 0 0 3px rgba(211, 163, 84, .12);
+}
+
+.ec-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.ec-desc {
+    color: var(--muted);
+    margin: 8px 0 14px;
+    font-size: 0.95rem;
+}
+
+.ec-error {
+    color: #ff9f9f;
+    margin: 6px 0 0;
+    font-size: 0.9rem;
+}
+
+.ec-page .wl-card-media img {
+    height: 220px;
+    object-fit: cover;
+    border-radius: 14px;
+}
+
+.ec-community .wl-card-media img {
+    height: 200px;
+}
+
+.ec-page .wl-card-actions {
+    margin-top: 8px;
+}
+
+.ec-page .wl-card-title {
+    margin-bottom: 6px;
+}

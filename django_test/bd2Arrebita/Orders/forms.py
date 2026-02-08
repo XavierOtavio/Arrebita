@@ -17,7 +17,6 @@ class OrderForm(forms.Form):
     billing_name = forms.CharField(max_length=200, required=False)
     billing_nif = forms.CharField(max_length=32, required=False)
     billing_address = forms.CharField(widget=forms.Textarea, required=False)
-    invoice_url = forms.CharField(required=False)
 
     def __init__(self, *args, initial_order=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,4 +32,3 @@ class OrderForm(forms.Form):
             self.fields['billing_name'].initial = initial_order.billing_name
             self.fields['billing_nif'].initial = initial_order.billing_nif
             self.fields['billing_address'].initial = initial_order.billing_address
-            self.fields['invoice_url'].initial = initial_order.invoice_url

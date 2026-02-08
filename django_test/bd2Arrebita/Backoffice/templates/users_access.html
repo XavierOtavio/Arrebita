@@ -55,7 +55,9 @@
 
             <div class="bo-field">
                 <label for="new_permission">Nova permissao</label>
-                <input id="new_permission" name="new_permission" type="text" placeholder="ex: backoffice:backoffice_users">
+                <input id="new_permission" name="new_permission" type="text"
+                       placeholder="ex: backoffice.dashboard, wine.list, events.list">
+                <p class="bo-footnote">Formato: modulo.funcionalidade</p>
             </div>
 
             <div class="bo-field">
@@ -70,7 +72,9 @@
                         <table class="bo-table access-table">
                             <thead>
                             <tr>
-                                <th></th>
+                                <th>Acoes</th>
+                                <th>Modulo</th>
+                                <th>Funcionalidade</th>
                                 <th>Permissao</th>
                                 <th>Descricao</th>
                                 <th></th>
@@ -85,6 +89,15 @@
                                            value="{{ item.permission }}"
                                            {% if item.permission in role_permissions %}checked{% endif %}>
                                 </td>
+                                <td class="access-module-cell">
+                                    {{ item.module|default:"-" }}
+                                </td>
+                                <td class="access-func-cell">
+                                    {{ item.functionality|default:"-" }}
+                                    {% if item.is_legacy %}
+                                        <span class="access-legacy">legado</span>
+                                    {% endif %}
+                                </td>
                                 <td class="access-perm-cell">{{ item.permission }}</td>
                                 <td class="access-desc-cell">
                                     <input type="hidden" name="perm_list" value="{{ item.permission }}">
@@ -95,6 +108,12 @@
                                            placeholder="Sem descricao">
                                 </td>
                                 <td class="access-actions-cell">
+                                    <button class="bo-link bo-warning"
+                                            type="button"
+                                            data-rename-permission="{{ item.permission }}"
+                                            data-modal-target="#modal-rename-permission">
+                                        Renomear
+                                    </button>
                                     <button class="bo-link bo-danger"
                                             type="submit"
                                             name="delete_permission"
@@ -123,5 +142,78 @@
     </section>
     {% endif %}
 </section>
+
+<section id="modal-rename-permission" class="bo-modal" hidden>
+    <div class="bo-modal-content">
+        <header class="bo-modal-header">
+            <h3>Renomear permissao</h3>
+        </header>
+
+        <form method="post" class="bo-form">
+            {% csrf_token %}
+            <input type="hidden" name="user_id" value="{{ selected_user.user_id }}">
+            <input type="hidden" id="rename_old" name="rename_old" value="">
+
+            <div class="bo-form-grid">
+                <div class="bo-field bo-field-full">
+                    <label>Permissao atual</label>
+                    <input id="rename_old_display" type="text" disabled>
+                </div>
+                <div class="bo-field bo-field-full">
+                    <label>Novo nome (modulo.funcionalidade)</label>
+                    <input id="rename_new" name="rename_new" type="text" placeholder="ex: backoffice.orders" required>
+                </div>
+                <div class="bo-field bo-field-full">
+                    <label>Escreve o nome atual para confirmar</label>
+                    <input id="rename_confirm" name="rename_confirm" type="text" required>
+                </div>
+                <div class="bo-field bo-field-full bo-field-checkbox">
+                    <label>
+                        <input type="checkbox" name="rename_ack">
+                        Confirmo que quero renomear esta permissao em todas as roles
+                    </label>
+                </div>
+            </div>
+
+            <p class="bo-footnote">
+                Esta operacao altera o nome da permissao em todas as roles. Se o novo nome ja existir, nada acontece.
+            </p>
+
+            <footer class="bo-modal-footer">
+                <button class="bo-btn-primary">Renomear</button>
+                <button type="button" class="bo-btn-secondary" data-modal-close="#modal-rename-permission">
+                    Cancelar
+                </button>
+            </footer>
+        </form>
+    </div>
+</section>
+
+<script>
+    document.addEventListener("click", function (e) {
+        const targetOpen = e.target.getAttribute("data-modal-target");
+        if (targetOpen) {
+            const el = document.querySelector(targetOpen);
+            if (el) el.hidden = false;
+        }
+        const targetClose = e.target.getAttribute("data-modal-close");
+        if (targetClose) {
+            const el = document.querySelector(targetClose);
+            if (el) el.hidden = true;
+        }
+
+        const renamePermission = e.target.getAttribute("data-rename-permission");
+        if (renamePermission) {
+            const oldInput = document.getElementById("rename_old");
+            const oldDisplay = document.getElementById("rename_old_display");
+            const confirmInput = document.getElementById("rename_confirm");
+            const newInput = document.getElementById("rename_new");
+            if (oldInput) oldInput.value = renamePermission;
+            if (oldDisplay) oldDisplay.value = renamePermission;
+            if (confirmInput) confirmInput.value = "";
+            if (newInput) newInput.value = "";
+        }
+    });
+</script>
 
 {% endblock %}

@@ -15,7 +15,7 @@
         <th>Nome de Faturação</th>
         <th>NIF</th>
         <th>Morada</th>
-        <th>URL da Fatura</th>
+        <th>PDF</th>
     </tr>
     </thead>
 
@@ -31,11 +31,7 @@
         <td>{{ inv.order.billing_nif }}</td>
         <td>{{ inv.order.billing_address }}</td>
         <td>
-            {% if inv.invoice_url %}
-            <a href="{{ inv.invoice_url }}" target="_blank">Abrir</a>
-            {% else %}
-            —
-            {% endif %}
+            <a href="{% url 'invoice_pdf' inv.invoice_id %}" target="_blank">Gerar PDF</a>
         </td>
     </tr>
     {% empty %}

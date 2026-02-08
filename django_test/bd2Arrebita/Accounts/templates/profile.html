@@ -4,45 +4,221 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/profile.css' %}">
 
-<section class="profile-page">
-    <div class="profile-card">
-        <header class="profile-header">
+<section class="profile-shell">
+    <header class="profile-hero">
+        <div class="profile-hero-left">
+            <span class="profile-pill">Conta</span>
+            <h1 class="profile-hero-title">O meu perfil</h1>
+            <p class="profile-hero-subtitle">Resumo do teu historico e acesso rapido as tuas encomendas.</p>
+        </div>
+        <div class="profile-hero-card">
+            <div class="profile-hero-user">
+                <img class="profile-avatar" src="{% static 'img/u4.jpg' %}" alt="Avatar">
+                <div>
+                    <strong>{{ user.full_name }}</strong>
+                    <span>{{ user.email }}</span>
+                </div>
+            </div>
+            <div class="profile-hero-meta">
+                <span>Role</span>
+                <strong>{{ user.role }}</strong>
+            </div>
+            <div class="profile-hero-actions">
+                <a class="btn btn-primary" href="#orders">Ver encomendas</a>
+                <a class="btn btn-ghost" href="#invoices">Ver faturas</a>
+            </div>
+        </div>
+    </header>
+
+    {% if user %}
+    <section class="profile-kpi-grid">
+        <article class="profile-kpi-card">
+            <span class="profile-kpi-label">Encomendas</span>
+            <span class="profile-kpi-value">{{ stats.orders_total }}</span>
+            <span class="profile-kpi-hint">
+                {% if stats.last_order_at %}Ultima: {{ stats.last_order_at|date:"d/m/Y" }}{% else %}Sem encomendas{% endif %}
+            </span>
+        </article>
+        <article class="profile-kpi-card">
+            <span class="profile-kpi-label">Faturas</span>
+            <span class="profile-kpi-value">{{ stats.invoices_total }}</span>
+            <span class="profile-kpi-hint">
+                {% if stats.last_invoice_at %}Ultima: {{ stats.last_invoice_at|date:"d/m/Y" }}{% else %}Sem faturas{% endif %}
+            </span>
+        </article>
+        <article class="profile-kpi-card">
+            <span class="profile-kpi-label">Itens comprados</span>
+            <span class="profile-kpi-value">{{ stats.items_total }}</span>
+            <span class="profile-kpi-hint">Total de garrafas.</span>
+        </article>
+        <article class="profile-kpi-card">
+            <span class="profile-kpi-label">Total gasto</span>
+            <span class="profile-kpi-value">EUR {{ stats.spend_total|floatformat:2 }}</span>
+            <span class="profile-kpi-hint">Calculado por item.</span>
+        </article>
+    </section>
+
+    <section class="profile-grid">
+        <div class="profile-panel">
+            <div class="profile-panel-header">
+                <div>
+                    <h2>Dados pessoais</h2>
+                    <p>Atualiza o teu nome e email.</p>
+                </div>
+            </div>
+            <form method="post" class="profile-form">
+                {% csrf_token %}
+                <div class="profile-grid-fields">
+                    <div class="profile-field">
+                        <label for="full_name">Nome completo</label>
+                        <input id="full_name" name="full_name" type="text" value="{{ user.full_name }}" required>
+                    </div>
+                    <div class="profile-field">
+                        <label for="email">Email</label>
+                        <input id="email" name="email" type="email" value="{{ user.email }}" required>
+                    </div>
+                    <div class="profile-field">
+                        <label for="role">Role</label>
+                        <input id="role" name="role" type="text" value="{{ user.role }}" disabled>
+                    </div>
+                    <div class="profile-field">
+                        <label for="password_hash">Password hash (opcional)</label>
+                        <input id="password_hash" name="password_hash" type="text" placeholder="Deixa vazio para manter">
+                    </div>
+                </div>
+
+                <div class="profile-actions">
+                    <button class="btn btn-primary" type="submit">Guardar</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="profile-panel profile-panel-summary">
+            <div class="profile-panel-header">
+                <div>
+                    <h2>Resumo da conta</h2>
+                    <p>Ultimas atividades registadas.</p>
+                </div>
+            </div>
+            <div class="profile-summary-list">
+                <div class="profile-summary-row">
+                    <span>Ultima encomenda</span>
+                    <strong>{% if stats.last_order_at %}{{ stats.last_order_at|date:"d/m/Y" }}{% else %}-{% endif %}</strong>
+                </div>
+                <div class="profile-summary-row">
+                    <span>Ultima fatura</span>
+                    <strong>{% if stats.last_invoice_at %}{{ stats.last_invoice_at|date:"d/m/Y" }}{% else %}-{% endif %}</strong>
+                </div>
+                <div class="profile-summary-row">
+                    <span>Itens comprados</span>
+                    <strong>{{ stats.items_total }}</strong>
+                </div>
+                <div class="profile-summary-row">
+                    <span>Total gasto</span>
+                    <strong>EUR {{ stats.spend_total|floatformat:2 }}</strong>
+                </div>
+            </div>
+            <div class="profile-summary-actions">
+                <a class="btn btn-ghost" href="#orders">Ir para encomendas</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="profile-panel profile-panel-table" id="orders">
+        <div class="profile-panel-header">
             <div>
-                <h1 class="profile-title">Perfil</h1>
-                <p class="profile-subtitle">Atualiza os teus dados pessoais.</p>
+                <h2>Minhas encomendas</h2>
+                <p>Historico de encomendas recentes.</p>
             </div>
-        </header>
-
-        {% if user %}
-        <form method="post" class="profile-form">
-            {% csrf_token %}
-            <div class="profile-grid">
-                <div class="profile-field">
-                    <label for="full_name">Nome completo</label>
-                    <input id="full_name" name="full_name" type="text" value="{{ user.full_name }}" required>
-                </div>
-                <div class="profile-field">
-                    <label for="email">Email</label>
-                    <input id="email" name="email" type="email" value="{{ user.email }}" required>
-                </div>
-                <div class="profile-field">
-                    <label for="role">Role</label>
-                    <input id="role" name="role" type="text" value="{{ user.role }}" disabled>
-                </div>
-                <div class="profile-field">
-                    <label for="password_hash">Password hash (opcional)</label>
-                    <input id="password_hash" name="password_hash" type="text" placeholder="Deixa vazio para manter">
-                </div>
-            </div>
-
-            <div class="profile-actions">
-                <button class="btn btn-primary" type="submit">Guardar</button>
-            </div>
-        </form>
+        </div>
+        {% if orders %}
+        <div class="profile-table-wrapper">
+            <table class="profile-table">
+                <thead>
+                <tr>
+                    <th>Numero</th>
+                    <th>Estado</th>
+                    <th>Tipo</th>
+                    <th>Data</th>
+                    <th>Fatura</th>
+                    <th>Acoes</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_number }}</td>
+                    <td>{{ order.status }}</td>
+                    <td>{{ order.kind }}</td>
+                    <td>{{ order.created_at|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if order.invoice %}
+                                <a class="profile-link" href="{% url 'invoice_pdf' order.invoice.invoice_id %}" target="_blank" rel="noopener">
+                                    PDF {{ order.invoice.invoice_number }}
+                                </a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if order.invoice or order.status == "paid" or order.status == "pago" or order.status == "confirmed" %}
+                                <span class="profile-muted">Pago</span>
+                            {% else %}
+                                <form method="post" action="{% url 'pay_order' order.order_id %}">
+                                    {% csrf_token %}
+                                    <button class="btn btn-primary btn-sm" type="submit">Pagar</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
         {% else %}
-        <p class="profile-empty">Nao existem utilizadores.</p>
+        <p class="profile-empty">Ainda nao existem encomendas.</p>
         {% endif %}
-    </div>
+    </section>
+
+    <section class="profile-panel profile-panel-table" id="invoices">
+        <div class="profile-panel-header">
+            <div>
+                <h2>Minhas faturas</h2>
+                <p>Documentos emitidos para as tuas encomendas.</p>
+            </div>
+        </div>
+        {% if invoices %}
+        <div class="profile-table-wrapper">
+            <table class="profile-table">
+                <thead>
+                <tr>
+                    <th>Numero</th>
+                    <th>Encomenda</th>
+                    <th>Emitida em</th>
+                    <th>Link</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td>{{ invoice.invoice_number }}</td>
+                    <td>{{ invoice.order.order_number }}</td>
+                    <td>{{ invoice.issued_at|date:"d/m/Y" }}</td>
+                    <td>
+                        <a class="profile-link" href="{% url 'invoice_pdf' invoice.invoice_id %}" target="_blank" rel="noopener">PDF</a>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="profile-empty">Ainda nao existem faturas.</p>
+        {% endif %}
+    </section>
+    {% else %}
+    <p class="profile-empty">Nao existem utilizadores.</p>
+    {% endif %}
 </section>
 
 {% endblock %}

@@ -29,5 +29,10 @@ def list_reviews(wine_id=None, limit=50):
     reviews = []
     for doc in cursor:
         doc["id"] = str(doc.get("_id"))
+        rating = doc.get("rating")
+        try:
+            doc["rating"] = int(rating)
+        except (TypeError, ValueError):
+            doc["rating"] = 0
         reviews.append(doc)
     return reviews

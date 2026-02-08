@@ -95,6 +95,55 @@ urlpatterns = [
         name="backoffice_event_delete",
     ),
 
+    # Lista de encomendas (GET)
+    path(
+        "orders/",
+        views.backoffice_orders,
+        name="backoffice_orders",
+    ),
+
+    # Criar encomenda (POST)
+    path(
+        "orders/create/",
+        views.backoffice_order_create,
+        name="backoffice_order_create",
+    ),
+
+    # Atualizar encomenda (POST)
+    path(
+        "orders/<int:order_id>/update/",
+        views.backoffice_order_update,
+        name="backoffice_order_update",
+    ),
+
+    # Apagar encomenda (POST)
+    path(
+        "orders/<int:order_id>/delete/",
+        views.backoffice_order_delete,
+        name="backoffice_order_delete",
+    ),
+
+    # Criar fatura (POST)
+    path(
+        "orders/invoices/create/",
+        views.backoffice_invoice_create,
+        name="backoffice_invoice_create",
+    ),
+
+    # Atualizar fatura (POST)
+    path(
+        "orders/invoices/<int:invoice_id>/update/",
+        views.backoffice_invoice_update,
+        name="backoffice_invoice_update",
+    ),
+
+    # Apagar fatura (POST)
+    path(
+        "orders/invoices/<int:invoice_id>/delete/",
+        views.backoffice_invoice_delete,
+        name="backoffice_invoice_delete",
+    ),
+
     # Lista de utilizadores (GET)
     path(
         "users/",

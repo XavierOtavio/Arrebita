@@ -4,60 +4,157 @@
 {% block content %}
 <link rel="stylesheet" href="{% static '/css/backoffice.css' %}">
 
-<section class="bo-wrapper">
-    <header class="bo-header">
-        <div>
-            <h1 class="bo-title">Backoffice Arrebita</h1>
-            <p>Gestão rápida do catálogo, encomendas e clientes.</p>
+<section class="bo-wrapper bo-dashboard">
+    <header class="bo-dashboard-top">
+        <div class="bo-dashboard-header">
+            <div class="bo-header-badge">
+                <span class="bo-dot"></span>
+                Ambiente de desenvolvimento
+            </div>
+            <h1 class="bo-dashboard-title">Dashboard Backoffice</h1>
+            <p class="bo-dashboard-subtitle">Visao geral do catalogo, encomendas e clientes.</p>
         </div>
-        <div class="bo-header-badge">
-            <span class="bo-dot"></span>
-            Ambiente de desenvolvimento
+        <div class="bo-dashboard-actions">
+            <div class="bo-chip-group">
+                <button class="bo-chip is-active" type="button">Hoje</button>
+                <button class="bo-chip" type="button">7 dias</button>
+                <button class="bo-chip" type="button">30 dias</button>
+            </div>
+            <div class="bo-action-group">
+                <a class="bo-btn-primary" href="orders">Ver encomendas</a>
+                <a class="bo-btn-secondary" href="wines">Gerir catalogo</a>
+            </div>
         </div>
     </header>
 
-    <section class="bo-section">
-        <h2 class="bo-section-title">Resumo rápido</h2>
-        <div class="bo-stats-grid">
-            <article class="bo-stat-card">
-                <div class="bo-stat-icon">🍷</div>
-                <div class="bo-stat-content">
-                    <span class="bo-stat-label">Vinhos ativos</span>
-                    <span class="bo-stat-value">—</span>
-                    <span class="bo-stat-hint">Ligaremos isto à BD depois.</span>
-                </div>
-            </article>
+    <section class="bo-kpi-grid">
+        <article class="bo-kpi-card">
+            <span class="bo-kpi-label">Vinhos ativos</span>
+            <span class="bo-kpi-value">{% if stats.wines_total is not None %}{{ stats.wines_total }}{% else %}-{% endif %}</span>
+            <span class="bo-kpi-hint">Total no catalogo.</span>
+        </article>
 
-            <article class="bo-stat-card">
-                <div class="bo-stat-icon">🧾</div>
-                <div class="bo-stat-content">
-                    <span class="bo-stat-label">Encomendas hoje</span>
-                    <span class="bo-stat-value">—</span>
-                    <span class="bo-stat-hint">Por agora é só layout.</span>
-                </div>
-            </article>
+        <article class="bo-kpi-card">
+            <span class="bo-kpi-label">Encomendas hoje</span>
+            <span class="bo-kpi-value">{% if stats.orders_today is not None %}{{ stats.orders_today }}{% else %}-{% endif %}</span>
+            <span class="bo-kpi-hint">Criadas na data de hoje.</span>
+        </article>
 
-            <article class="bo-stat-card">
-                <div class="bo-stat-icon">👤</div>
-                <div class="bo-stat-content">
-                    <span class="bo-stat-label">Clientes registados</span>
-                    <span class="bo-stat-value">—</span>
-                    <span class="bo-stat-hint">Quando houver dados, aparecem aqui.</span>
+        <article class="bo-kpi-card">
+            <span class="bo-kpi-label">Faturas emitidas</span>
+            <span class="bo-kpi-value">{% if stats.invoices_total is not None %}{{ stats.invoices_total }}{% else %}-{% endif %}</span>
+            <span class="bo-kpi-hint">Total acumulado.</span>
+        </article>
+
+        <article class="bo-kpi-card">
+            <span class="bo-kpi-label">Clientes registados</span>
+            <span class="bo-kpi-value">{% if stats.users_total is not None %}{{ stats.users_total }}{% else %}-{% endif %}</span>
+            <span class="bo-kpi-hint">Total de utilizadores.</span>
+        </article>
+    </section>
+
+    <section class="bo-dashboard-grid">
+        <div class="bo-panel bo-panel-large">
+            <div class="bo-panel-header">
+                <div>
+                    <h2>Performance</h2>
+                    <p>Ultimos 30 dias (simulacao)</p>
                 </div>
-            </article>
+                <span class="bo-panel-badge">Em tempo real</span>
+            </div>
+            <div class="bo-chart">
+                <div class="bo-chart-bars">
+                    <span class="bo-chart-bar" style="--h: 45%"></span>
+                    <span class="bo-chart-bar" style="--h: 62%"></span>
+                    <span class="bo-chart-bar" style="--h: 38%"></span>
+                    <span class="bo-chart-bar" style="--h: 70%"></span>
+                    <span class="bo-chart-bar" style="--h: 55%"></span>
+                    <span class="bo-chart-bar" style="--h: 80%"></span>
+                    <span class="bo-chart-bar" style="--h: 60%"></span>
+                </div>
+                <div class="bo-chart-legend">
+                    <div class="bo-legend-item">
+                        <span class="bo-legend-dot"></span>
+                        Encomendas
+                    </div>
+                    <div class="bo-legend-item">
+                        <span class="bo-legend-dot bo-legend-dot-gold"></span>
+                        Receita
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bo-panel">
+            <div class="bo-panel-header">
+                <div>
+                    <h2>Resumo operacional</h2>
+                    <p>Indicadores principais</p>
+                </div>
+                <a class="bo-link" href="orders">Ver detalhes</a>
+            </div>
+            <div class="bo-metric-list">
+                <div class="bo-metric-row">
+                    <span>Itens vendidos</span>
+                    <strong>{% if stats.items_total is not None %}{{ stats.items_total }}{% else %}-{% endif %}</strong>
+                </div>
+                <div class="bo-metric-row">
+                    <span>Total encomendas</span>
+                    <strong>{% if stats.orders_total is not None %}{{ stats.orders_total }}{% else %}-{% endif %}</strong>
+                </div>
+                <div class="bo-metric-row">
+                    <span>Eventos publicados</span>
+                    <strong>{% if stats.events_published is not None %}{{ stats.events_published }}{% else %}-{% endif %}</strong>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="bo-section bo-activity-section">
+        <div class="bo-panel bo-panel-wide">
+            <div class="bo-panel-header">
+                <div>
+                    <h2>Atividade recente</h2>
+                    <p>Resumo baseado nos indicadores</p>
+                </div>
+                <span class="bo-panel-muted">Atualizado agora</span>
+            </div>
+            <ul class="bo-activity-list">
+                <li>
+                    <span class="bo-activity-tag is-green">Encomendas</span>
+                    <span>
+                        {% if stats.orders_today %}{{ stats.orders_today }} encomendas criadas hoje.{% else %}Sem encomendas criadas hoje.{% endif %}
+                    </span>
+                    <span class="bo-activity-time">Hoje</span>
+                </li>
+                <li>
+                    <span class="bo-activity-tag is-gold">Faturas</span>
+                    <span>
+                        {% if stats.invoices_total is not None %}{{ stats.invoices_total }} faturas emitidas no total.{% else %}Sem dados de faturas.{% endif %}
+                    </span>
+                    <span class="bo-activity-time">Total</span>
+                </li>
+                <li>
+                    <span class="bo-activity-tag is-purple">Eventos</span>
+                    <span>
+                        {% if stats.events_published is not None %}{{ stats.events_published }} eventos publicados.{% else %}Sem dados de eventos.{% endif %}
+                    </span>
+                    <span class="bo-activity-time">Total</span>
+                </li>
+            </ul>
         </div>
     </section>
 
     <section class="bo-section">
-        <h2 class="bo-section-title">Gestão principal</h2>
+        <h2 class="bo-section-title">Gestao principal</h2>
         <div class="bo-grid">
             <a class="bo-card" href="wines">
                 <div class="bo-card-header">
-                    <span class="bo-card-icon">🍇</span>
-                    <h3>Vinhos &amp; catálogo</h3>
+                    <span class="bo-card-icon">VIN</span>
+                    <h3>Vinhos &amp; catalogo</h3>
                 </div>
-                <p>Gerir vinhos, tipos, castas, imagens e promoções.</p>
-                <span class="bo-card-cta">Entrar na gestão de vinhos</span>
+                <p>Gerir vinhos, tipos, castas, imagens e promocoes.</p>
+                <span class="bo-card-cta">Entrar na gestao de vinhos</span>
             </a>
 
             <a class="bo-card" href="events">
@@ -69,18 +166,18 @@
                 <span class="bo-card-cta">Entrar na gestao de eventos</span>
             </a>
 
-            <a class="bo-card bo-card-disabled" href="#">
+            <a class="bo-card" href="orders">
                 <div class="bo-card-header">
-                    <span class="bo-card-icon">📦</span>
+                    <span class="bo-card-icon">ORD</span>
                     <h3>Encomendas</h3>
                 </div>
                 <p>Consultar estado das encomendas, pagamentos e faturas.</p>
-                <span class="bo-card-cta">Brevemente disponível</span>
+                <span class="bo-card-cta">Entrar na gestao de encomendas</span>
             </a>
 
             <a class="bo-card" href="users">
                 <div class="bo-card-header">
-                    <span class="bo-card-icon">👥</span>
+                    <span class="bo-card-icon">USR</span>
                     <h3>Utilizadores</h3>
                 </div>
                 <p>Gestao de contas, roles e dados base.</p>
@@ -90,7 +187,7 @@
     </section>
 
     <section class="bo-section bo-section-secondary">
-        <h2 class="bo-section-title">Ferramentas rápidas</h2>
+        <h2 class="bo-section-title">Ferramentas rapidas</h2>
         <div class="bo-quick-actions">
             <button class="bo-quick-btn" type="button">
                 + Adicionar novo vinho
@@ -99,11 +196,11 @@
                 + Adicionar evento
             </a>
             <button class="bo-quick-btn bo-quick-btn-ghost" type="button">
-                Ver últimas promoções
+                Ver ultimas promocoes
             </button>
         </div>
         <p class="bo-footnote">
-            Os botões ainda não fazem nada. Tal como muitos gestores de projeto.
+            Os botoes ainda nao fazem nada. Tal como muitos gestores de projeto.
         </p>
     </section>
 </section>

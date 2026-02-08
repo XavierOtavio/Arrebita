@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Arrebita - Carrinho{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/cart.css' %}">
+
+<section class="cart-page">
+    <header class="cart-header">
+        <div>
+            <span class="cart-kicker">Carrinho</span>
+            <h1>O teu carrinho</h1>
+            <p>Reve os teus vinhos e bilhetes antes de validares.</p>
+        </div>
+        <div class="cart-header-meta">
+            <span id="cart-items-count">{{ items_count }} itens</span>
+            <span>Total: <strong id="cart-total-header">EUR {{ total|floatformat:2 }}</strong></span>
+        </div>
+    </header>
+
+    <div class="cart-grid">
+        <div class="cart-panel">
+            {% if items %}
+            <form id="cart-form" method="post" action="{% url 'cart_update' %}">
+                {% csrf_token %}
+                <div class="cart-items">
+                    {% for item in items %}
+                    <div class="cart-item" data-unit-price="{{ item.unit_price|floatformat:2 }}">
+                        <div class="cart-item-media">
+                            {% if item.kind == "event" %}
+                                <img src="{% static 'img/a3.png' %}" alt="{{ item.event.display_title }}">
+                            {% else %}
+                                <img src="{% static 'img/arrebita_tinto.png' %}" alt="{{ item.wine.name }}">
+                            {% endif %}
+                        </div>
+                        <div class="cart-item-info">
+                            {% if item.kind == "event" %}
+                                <h3>{{ item.event.display_title }}</h3>
+                                <p>{{ item.event.location_display|default:"" }}</p>
+                                <span class="cart-item-meta">{{ item.event.starts_at|date:"d/m/Y H:i" }}</span>
+                            {% else %}
+                                <h3>{{ item.wine.name }}</h3>
+                                <p>{{ item.wine.type_label|default:"" }} {{ item.wine.region|default:"" }}</p>
+                            {% endif %}
+                            <span class="cart-item-price">EUR {{ item.unit_price|floatformat:2 }}</span>
+                        </div>
+                        <div class="cart-item-qty">
+                            {% if item.kind == "event" %}
+                                <label for="qty_event_{{ item.event.event_id }}">Qtd</label>
+                                <input id="qty_event_{{ item.event.event_id }}" class="cart-qty-input" name="qty_event_{{ item.event.event_id }}" type="number" min="1" value="{{ item.quantity }}">
+                            {% else %}
+                                <label for="qty_wine_{{ item.wine.wine_id }}">Qtd</label>
+                                <input id="qty_wine_{{ item.wine.wine_id }}" class="cart-qty-input" name="qty_wine_{{ item.wine.wine_id }}" type="number" min="1" value="{{ item.quantity }}">
+                            {% endif %}
+                        </div>
+                        <div class="cart-item-total">
+                            <span>Subtotal</span>
+                            <strong class="cart-line-total">EUR {{ item.line_total|floatformat:2 }}</strong>
+                        </div>
+                        {% if item.kind == "event" %}
+                            <button class="cart-remove" name="remove_id" value="event:{{ item.event.event_id }}" type="submit">Remover</button>
+                        {% else %}
+                            <button class="cart-remove" name="remove_id" value="wine:{{ item.wine.wine_id }}" type="submit">Remover</button>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="cart-actions">
+                    <button class="btn btn-ghost" type="submit">Atualizar carrinho</button>
+                    <button class="btn btn-ghost" type="submit" formaction="{% url 'cart_clear' %}">Limpar</button>
+                </div>
+            </form>
+            {% else %}
+            <p class="cart-empty">O carrinho esta vazio.</p>
+            {% endif %}
+        </div>
+
+        <aside class="cart-summary">
+            <h2>Resumo</h2>
+            <div class="cart-summary-row">
+                <span>Itens</span>
+                <strong id="cart-items-total">{{ items_count }}</strong>
+            </div>
+            <div class="cart-summary-row">
+                <span>Total</span>
+                <strong id="cart-total">EUR {{ total|floatformat:2 }}</strong>
+            </div>
+            <div class="cart-summary-actions">
+                <button class="btn btn-primary btn-block" type="submit" form="cart-form" name="next" value="/checkout/">Pagar agora</button>
+                <a class="btn btn-ghost btn-block" href="/wines/">Continuar a comprar</a>
+            </div>
+            <p class="cart-summary-note">Pagamento sera simulado na proxima etapa.</p>
+        </aside>
+    </div>
+</section>
+<script>
+    (function () {
+        const items = Array.from(document.querySelectorAll(".cart-item"));
+        const totalEl = document.getElementById("cart-total");
+        const totalHeaderEl = document.getElementById("cart-total-header");
+        const itemsCountEl = document.getElementById("cart-items-total");
+        const itemsCountHeaderEl = document.getElementById("cart-items-count");
+        let lastTotal = null;
+        let lastCount = null;
+
+        const toNumber = (value) => {
+            if (!value) return 0;
+            return parseFloat(String(value).replace(",", "."));
+        };
+
+        const formatMoney = (value) => {
+            const safe = Number.isFinite(value) ? value : 0;
+            return `EUR ${safe.toFixed(2)}`;
+        };
+
+        const flash = (elements) => {
+            if (!elements.length) return;
+            elements.forEach((el) => {
+                if (!el) return;
+                el.classList.add("cart-total-changed");
+                setTimeout(() => el.classList.remove("cart-total-changed"), 700);
+            });
+        };
+
+        const normalizeQty = (input) => {
+            if (!input) return 1;
+            let qty = parseInt(input.value, 10);
+            if (!Number.isFinite(qty) || qty < 1) {
+                qty = 1;
+            }
+            if (String(qty) !== input.value) {
+                input.value = qty;
+            }
+            return qty;
+        };
+
+        const updateTotals = () => {
+            let total = 0;
+            let count = 0;
+            items.forEach((item) => {
+                const unitPrice = toNumber(item.dataset.unitPrice);
+                const qtyInput = item.querySelector(".cart-qty-input");
+                const qty = normalizeQty(qtyInput);
+                const lineTotal = unitPrice * qty;
+                const lineEl = item.querySelector(".cart-line-total");
+                if (lineEl) {
+                    const hadLast = lineEl.dataset.lastValue !== undefined;
+                    const lastLine = toNumber(lineEl.dataset.lastValue);
+                    lineEl.textContent = formatMoney(lineTotal);
+                    lineEl.dataset.lastValue = lineTotal.toFixed(2);
+                    if (hadLast && Math.abs(lineTotal - lastLine) > 0.001) {
+                        flash([lineEl]);
+                    }
+                }
+                total += lineTotal;
+                count += qty;
+            });
+
+            if (totalEl) totalEl.textContent = formatMoney(total);
+            if (totalHeaderEl) totalHeaderEl.textContent = formatMoney(total);
+            if (itemsCountEl) itemsCountEl.textContent = count;
+            if (itemsCountHeaderEl) itemsCountHeaderEl.textContent = `${count} itens`;
+
+            if (lastTotal !== null && Math.abs(total - lastTotal) > 0.001) {
+                flash([totalEl, totalHeaderEl]);
+            }
+            if (lastCount !== null && count !== lastCount) {
+                flash([itemsCountEl, itemsCountHeaderEl]);
+            }
+            lastTotal = total;
+            lastCount = count;
+        };
+
+        items.forEach((item) => {
+            const qtyInput = item.querySelector(".cart-qty-input");
+            if (!qtyInput) return;
+            qtyInput.addEventListener("input", updateTotals);
+            qtyInput.addEventListener("change", updateTotals);
+            qtyInput.addEventListener("blur", updateTotals);
+        });
+
+        updateTotals();
+    })();
+</script>
+{% endblock %}
+
+

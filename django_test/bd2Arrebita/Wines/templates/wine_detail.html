@@ -4,91 +4,211 @@
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/wine-detail.css' %}">
 
-<section class="wd-page">
-    <div class="wd-hero">
-        <div class="wd-media">
-            <img src="{% static 'img/arrebita_tinto.png' %}" alt="{{ wine.name }}">
+<section class="wd-shell">
+    <header class="wd-hero">
+        <div class="wd-hero-media">
+            <div class="wd-media-card">
+                <img src="{% static 'img/arrebita_tinto.png' %}" alt="{{ wine.name }}">
+                <div class="wd-media-tags">
+                    <span class="wd-media-tag">SKU {{ wine.sku }}</span>
+                    {% if wine.has_active_promo %}
+                        <span class="wd-media-tag is-accent">Promo</span>
+                    {% endif %}
+                </div>
+            </div>
         </div>
-        <div class="wd-info">
+
+        <div class="wd-hero-info">
+            <span class="wd-pill">Vinho</span>
             <h1 class="wd-title">{{ wine.name }}</h1>
+
             <div class="wd-badges">
                 {% if wine.type_label %}<span class="badge">{{ wine.type_label|title }}</span>{% endif %}
                 {% if wine.region %}<span class="badge">{{ wine.region }}</span>{% endif %}
                 {% if wine.vintage_year %}<span class="badge">{{ wine.vintage_year }}</span>{% endif %}
             </div>
-            <div class="wd-price">EUR {{ wine.price|floatformat:2 }}</div>
 
-            <div class="wd-meta">
-                {% if wine.grape_varieties %}<p><strong>Castas:</strong> {{ wine.grape_varieties }}</p>{% endif %}
-                {% if wine.winemaker %}<p><strong>Enologo:</strong> {{ wine.winemaker }}</p>{% endif %}
-                {% if wine.alcohol_content %}<p><strong>Teor alcoolico:</strong> {{ wine.alcohol_content }}%</p>{% endif %}
-                {% if wine.serving_temperature %}<p><strong>Servir a:</strong> {{ wine.serving_temperature }} C</p>{% endif %}
-                {% if wine.bottle_capacity %}<p><strong>Capacidade:</strong> {{ wine.bottle_capacity }} L</p>{% endif %}
-            </div>
-
-            {% if wine.tasting_notes %}
-            <div class="wd-notes">
-                <h3>Notas de prova</h3>
-                <p>{{ wine.tasting_notes }}</p>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <section class="wd-reviews">
-        <div class="wd-reviews-header">
-            <h2>Reviews</h2>
-            <a href="/comunidade" class="btn btn-ghost">Ver comunidade</a>
-        </div>
-
-        <form method="post" class="wd-review-form">
-            {% csrf_token %}
-            <div class="wd-form-grid">
-                <div class="wd-field">
-                    <label for="user_name">Nome</label>
-                    <input id="user_name" name="user_name" type="text" placeholder="Anonimo">
-                </div>
-                <div class="wd-field">
-                    <label for="rating">Rating</label>
-                    <select id="rating" name="rating" required>
-                        <option value="">Selecionar</option>
-                        <option value="5">5</option>
-                        <option value="4">4</option>
-                        <option value="3">3</option>
-                        <option value="2">2</option>
-                        <option value="1">1</option>
-                    </select>
-                </div>
-                <div class="wd-field wd-field-full">
-                    <label for="comment">Comentario</label>
-                    <textarea id="comment" name="comment" rows="3" required></textarea>
-                </div>
-            </div>
-            {% if error %}
-            <p class="wd-error">{{ error }}</p>
-            {% endif %}
-            <button class="btn btn-primary" type="submit">Publicar</button>
-        </form>
-
-        {% if reviews %}
-        <div class="wd-review-list">
-            {% for r in reviews %}
-            <article class="wd-review">
-                <div class="wd-review-head">
-                    <strong>{{ r.user_name|default:"Anonimo" }}</strong>
-                    <div class="stars" aria-label="{{ r.rating }} estrelas">
+            <div class="wd-hero-meta">
+                <div class="wd-price">EUR {{ wine.price|floatformat:2 }}</div>
+                <div class="wd-rating-summary">
+                    <div class="stars" aria-label="{{ rating_safe }} estrelas">
                         {% for _ in "12345" %}
-                            <i class="star{% if forloop.counter <= r.rating %} is-on{% endif %}">&#9733;</i>
+                            <i class="star{% if forloop.counter <= rating_safe %} is-on{% endif %}">&#9733;</i>
                         {% endfor %}
                     </div>
+                    <span class="wd-rating-value">{{ rating_avg|floatformat:1 }}</span>
+                    <span class="wd-rating-count">{{ rating_count }} reviews</span>
                 </div>
-                <p>{{ r.comment }}</p>
-            </article>
-            {% endfor %}
+            </div>
+
+            <div class="wd-hero-actions">
+                <a class="btn btn-ghost" href="#reviews">Publicar review</a>
+                <a class="btn btn-ghost" href="/comunidade">Ver comunidade</a>
+            </div>
+
+            <form class="wd-cart-form" method="post" action="/cart/add/">
+                {% csrf_token %}
+                <input type="hidden" name="item_type" value="wine">
+                <input type="hidden" name="wine_id" value="{{ wine.wine_id }}">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <div class="wd-cart-row">
+                    <label for="qty">Quantidade</label>
+                    <input id="qty" name="qty" type="number" min="1" value="1">
+                </div>
+                <button class="btn btn-primary" type="submit">Adicionar ao carrinho</button>
+            </form>
+
+            <div class="wd-hero-stats">
+                <div class="wd-stat">
+                    <span>Stock</span>
+                    <strong>{% if wine.stock_qty is not None %}{{ wine.stock_qty }}{% else %}-{% endif %}</strong>
+                </div>
+                <div class="wd-stat">
+                    <span>Teor alcoolico</span>
+                    <strong>{% if wine.alcohol_content %}{{ wine.alcohol_content }}%{% else %}-{% endif %}</strong>
+                </div>
+                <div class="wd-stat">
+                    <span>Servir a</span>
+                    <strong>{% if wine.serving_temperature %}{{ wine.serving_temperature }} C{% else %}-{% endif %}</strong>
+                </div>
+                <div class="wd-stat">
+                    <span>Capacidade</span>
+                    <strong>{% if wine.bottle_capacity %}{{ wine.bottle_capacity }} L{% else %}-{% endif %}</strong>
+                </div>
+            </div>
         </div>
-        {% else %}
-        <p class="wd-empty">Ainda nao ha reviews.</p>
-        {% endif %}
+    </header>
+
+    <section class="wd-details-grid">
+        <div class="wd-panel">
+            <div class="wd-panel-header">
+                <div>
+                    <h2>Detalhes</h2>
+                    <p>Informacao tecnica do vinho.</p>
+                </div>
+            </div>
+            <div class="wd-detail-list">
+                <div class="wd-detail-row">
+                    <span>Regiao</span>
+                    <strong>{{ wine.region|default:"-" }}</strong>
+                </div>
+                <div class="wd-detail-row">
+                    <span>Tipo</span>
+                    <strong>{{ wine.type_label|default:"-" }}</strong>
+                </div>
+                <div class="wd-detail-row">
+                    <span>Vindima</span>
+                    <strong>{% if wine.vintage_year %}{{ wine.vintage_year }}{% else %}-{% endif %}</strong>
+                </div>
+                <div class="wd-detail-row">
+                    <span>Castas</span>
+                    <strong>{{ wine.grape_varieties|default:"-" }}</strong>
+                </div>
+                <div class="wd-detail-row">
+                    <span>Enologo</span>
+                    <strong>{{ wine.winemaker|default:"-" }}</strong>
+                </div>
+                <div class="wd-detail-row">
+                    <span>Harmonizacao</span>
+                    <strong>{{ wine.pairing|default:"-" }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="wd-panel">
+            <div class="wd-panel-header">
+                <div>
+                    <h2>Notas de prova</h2>
+                    <p>O que esperar em boca.</p>
+                </div>
+            </div>
+            {% if wine.tasting_notes %}
+                <p class="wd-notes">{{ wine.tasting_notes }}</p>
+            {% else %}
+                <p class="wd-muted">Ainda nao existem notas de prova para este vinho.</p>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="wd-reviews" id="reviews">
+        <div class="wd-reviews-header">
+            <div>
+                <h2>Reviews</h2>
+                <p>Partilha a tua opiniao com a comunidade.</p>
+            </div>
+            <div class="wd-reviews-summary">
+                <div class="stars" aria-label="{{ rating_safe }} estrelas">
+                    {% for _ in "12345" %}
+                        <i class="star{% if forloop.counter <= rating_safe %} is-on{% endif %}">&#9733;</i>
+                    {% endfor %}
+                </div>
+                <span>{{ rating_avg|floatformat:1 }} / 5</span>
+                <span class="wd-muted">{{ rating_count }} reviews</span>
+            </div>
+        </div>
+
+        <div class="wd-reviews-grid">
+            <form method="post" class="wd-review-form">
+                {% csrf_token %}
+                <div class="wd-form-grid">
+                    <div class="wd-field">
+                        <label for="user_name">Nome</label>
+                        <input id="user_name" name="user_name" type="text" placeholder="Anonimo">
+                    </div>
+                    <div class="wd-field">
+                        <label for="rating">Rating</label>
+                        <select id="rating" name="rating" required>
+                            <option value="">Selecionar</option>
+                            <option value="5">5</option>
+                            <option value="4">4</option>
+                            <option value="3">3</option>
+                            <option value="2">2</option>
+                            <option value="1">1</option>
+                        </select>
+                    </div>
+                    <div class="wd-field wd-field-full">
+                        <label for="comment">Comentario</label>
+                        <textarea id="comment" name="comment" rows="4" required></textarea>
+                    </div>
+                </div>
+                {% if error %}
+                <p class="wd-error">{{ error }}</p>
+                {% endif %}
+                <button class="btn btn-primary" type="submit">Publicar</button>
+            </form>
+
+            <div class="wd-review-list">
+                {% if reviews %}
+                    {% for r in reviews %}
+                    <article class="wd-review">
+                        <div class="wd-review-head">
+                            <div class="wd-review-user">
+                                {% if forloop.counter|divisibleby:2 %}
+                                    <img class="wd-review-avatar" src="{% static 'img/u2.jpg' %}" alt="avatar">
+                                {% elif forloop.counter|divisibleby:3 %}
+                                    <img class="wd-review-avatar" src="{% static 'img/u5.jpg' %}" alt="avatar">
+                                {% else %}
+                                    <img class="wd-review-avatar" src="{% static 'img/u7.jpg' %}" alt="avatar">
+                                {% endif %}
+                                <div>
+                                    <strong>{{ r.user_name|default:"Anonimo" }}</strong>
+                                    {% if r.created_at %}<span class="wd-review-date">{{ r.created_at|date:"d/m/Y H:i" }}</span>{% endif %}
+                                </div>
+                            </div>
+                            <div class="stars" aria-label="{{ r.rating }} estrelas">
+                                {% for _ in "12345" %}
+                                    <i class="star{% if forloop.counter <= r.rating %} is-on{% endif %}">&#9733;</i>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <p>{{ r.comment }}</p>
+                    </article>
+                    {% endfor %}
+                {% else %}
+                    <p class="wd-empty">Ainda nao ha reviews.</p>
+                {% endif %}
+            </div>
+        </div>
     </section>
 </section>
 

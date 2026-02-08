@@ -106,3 +106,14 @@ body.wl-body{
 
 /* ========= Vazio ========= */
 .wl-empty{opacity:.8;text-align:center;padding:40px 0}
+
+/* ========= Acoes ========= */
+.wl-card-actions{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+}
+
+.wl-cart-add{
+    margin:0;
+}

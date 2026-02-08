@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Arrebita - Encomenda validada{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/cart.css' %}">
+
+<section class="checkout-success">
+    <div class="cart-panel">
+        <div class="success-header">
+            <span class="success-pill">Validada</span>
+            <h1>Encomenda confirmada</h1>
+            <p>A tua encomenda foi validada com sucesso.</p>
+        </div>
+
+        <div class="success-details">
+            <div>
+                <span>Numero</span>
+                <strong>{{ order.order_number }}</strong>
+            </div>
+            <div>
+                <span>Estado</span>
+                <strong>{{ order.status }}</strong>
+            </div>
+            {% if invoice %}
+            <div>
+                <span>Fatura</span>
+                <a class="cart-link" href="{% url 'invoice_pdf' invoice.invoice_id %}" target="_blank" rel="noopener">
+                    PDF {{ invoice.invoice_number }}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="success-items">
+            {% for item in items %}
+            <div class="checkout-item">
+                <div>
+                    <strong>
+                        {% if item.kind == "event" %}Bilhete: {% endif %}
+                        {{ item.title }}
+                    </strong>
+                    <span>{{ item.quantity }} x EUR {{ item.unit_price|floatformat:2 }}</span>
+                </div>
+                <span>EUR {{ item.line_total|floatformat:2 }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="cart-summary-row">
+            <span>Total</span>
+            <strong>EUR {{ total|floatformat:2 }}</strong>
+        </div>
+
+        <div class="success-actions">
+            {% if can_pay %}
+            <form method="post" action="{% url 'pay_order' order.order_id %}">
+                {% csrf_token %}
+                <button class="btn btn-primary" type="submit">Pagar agora</button>
+            </form>
+            {% elif is_paid %}
+            <span class="checkout-muted">Encomenda ja paga.</span>
+            {% endif %}
+            {% if can_pay %}
+            <a class="btn btn-ghost" href="/wines/">Voltar ao catalogo</a>
+            {% else %}
+            <a class="btn btn-primary" href="/wines/">Voltar ao catalogo</a>
+            {% endif %}
+            <a class="btn btn-ghost" href="/perfil/">Ir para perfil</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

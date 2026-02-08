@@ -2,21 +2,66 @@
 {% load static %}
 {% block title %}Arrebita - Comunidade{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/community.css' %}">
+<link rel="stylesheet" href="{% static 'css/community-feed.css' %}">
 
-<section class="community-page">
-    <header class="community-header">
-        <div>
-            <h1 class="community-title">Comunidade</h1>
-            <p class="community-subtitle">Partilha reviews e descobre opinioes.</p>
+<section class="community-hero">
+    <div class="community-hero-inner">
+        <div class="community-hero-copy">
+            <p class="community-kicker">Comunidade Arrebita</p>
+            <h1 class="community-title">Onde o vinho vira conversa</h1>
+            <p class="community-subtitle">
+                Partilha opinioes, avalia garrafas e descobre novas recomendacoes em tempo real.
+            </p>
+            <div class="community-cta">
+                <a class="btn btn-primary" href="#publicar">Publicar review</a>
+                <a class="btn btn-ghost" href="/wines/">Explorar vinhos</a>
+            </div>
+            <div class="community-stats">
+                <div class="community-stat">
+                    <span class="community-stat-value">{{ reviews|length }}</span>
+                    <span class="community-stat-label">reviews recentes</span>
+                </div>
+                <div class="community-stat">
+                    <span class="community-stat-value">{{ wines|length }}</span>
+                    <span class="community-stat-label">vinhos no catalogo</span>
+                </div>
+                <div class="community-stat">
+                    <span class="community-stat-value">24h</span>
+                    <span class="community-stat-label">ritmo da conversa</span>
+                </div>
+            </div>
         </div>
-    </header>
 
-    <section class="community-form">
-        <h2>Publicar review</h2>
-        <form method="post">
-            {% csrf_token %}
-            <div class="community-grid">
+        <div class="community-hero-panel community-card">
+            <h2 class="community-card-title">Em destaque</h2>
+            <div class="hero-prompt">
+                <span class="hero-pill">Tema da semana</span>
+                <p>Qual vinho te surpreendeu este fim de semana?</p>
+            </div>
+            <div class="hero-people">
+                <div class="hero-people-head">
+                    <strong>Top membros</strong>
+                    <span>conversa ativa</span>
+                </div>
+                <div class="hero-avatars">
+                    <img src="{% static 'img/u1.jpg' %}" alt="membro 1">
+                    <img src="{% static 'img/u4.jpg' %}" alt="membro 2">
+                    <img src="{% static 'img/u6.jpg' %}" alt="membro 3">
+                    <img src="{% static 'img/u3.jpg' %}" alt="membro 4">
+                </div>
+            </div>
+            <a class="btn btn-ghost btn-block" href="#feed">Ver feed</a>
+        </div>
+    </div>
+</section>
+
+<section class="community-layout" id="feed">
+    <aside class="community-sidebar">
+        <div class="community-card" id="publicar">
+            <h2 class="community-card-title">Publicar review</h2>
+            <form method="post">
+                {% csrf_token %}
+
                 <div class="community-field">
                     <label for="wine_id">Vinho</label>
                     <select id="wine_id" name="wine_id" required>
@@ -26,10 +71,12 @@
                         {% endfor %}
                     </select>
                 </div>
+
                 <div class="community-field">
                     <label for="user_name">Nome</label>
                     <input id="user_name" name="user_name" type="text" placeholder="Anonimo">
                 </div>
+
                 <div class="community-field">
                     <label for="rating">Rating</label>
                     <select id="rating" name="rating" required>
@@ -41,45 +88,104 @@
                         <option value="1">1</option>
                     </select>
                 </div>
-                <div class="community-field community-field-full">
-                    <label for="comment">Comentario</label>
-                    <textarea id="comment" name="comment" rows="3" required></textarea>
-                </div>
-            </div>
-            {% if error %}
-            <p class="community-error">{{ error }}</p>
-            {% endif %}
-            <button class="btn btn-primary" type="submit">Publicar</button>
-        </form>
-    </section>
 
-    <section class="community-feed">
-        <h2>Feed</h2>
-        {% if reviews %}
-        <div class="community-list">
-            {% for r in reviews %}
-            <article class="community-card">
-                <div class="community-card-head">
-                    <div>
-                        <strong>{{ r.user_name|default:"Anonimo" }}</strong>
-                        <span class="community-wine">
-                            em <a href="/wines/{{ r.wine_id }}/">{{ r.wine_name }}</a>
-                        </span>
-                    </div>
-                    <div class="stars" aria-label="{{ r.rating }} estrelas">
-                        {% for _ in "12345" %}
-                            <i class="star{% if forloop.counter <= r.rating %} is-on{% endif %}">&#9733;</i>
-                        {% endfor %}
-                    </div>
+                <div class="community-field">
+                    <label for="comment">Comentario</label>
+                    <textarea id="comment" name="comment" rows="4" required></textarea>
                 </div>
-                <p>{{ r.comment }}</p>
-            </article>
-            {% endfor %}
+
+                {% if error %}
+                <p class="community-error">{{ error }}</p>
+                {% endif %}
+
+                <button class="btn btn-primary btn-block" type="submit">Publicar</button>
+            </form>
         </div>
+
+        <div class="community-card">
+            <h3 class="community-card-title">Canais em alta</h3>
+            <div class="community-tags">
+                <span class="community-tag">Tintos</span>
+                <span class="community-tag">Brancos</span>
+                <span class="community-tag">Rose</span>
+                <span class="community-tag">Espumantes</span>
+                <span class="community-tag">Notas de prova</span>
+                <span class="community-tag">Harmonizacoes</span>
+            </div>
+        </div>
+
+        <div class="community-card">
+            <h3 class="community-card-title">Regras da casa</h3>
+            <ul class="community-rules">
+                <li>Respeita opinioes e partilha com clareza.</li>
+                <li>Evita spoilers e indica a regiao do vinho.</li>
+                <li>Foca em notas de prova e experiencias reais.</li>
+            </ul>
+        </div>
+    </aside>
+
+    <div class="community-feed">
+        <div class="community-feed-toolbar">
+            <div>
+                <h2>Feed da comunidade</h2>
+                <p class="feed-sub">Reviews recentes, conversas e descobertas.</p>
+            </div>
+            <div class="feed-filters">
+                <span class="feed-chip is-active">Em alta</span>
+                <span class="feed-chip">Novas</span>
+                <span class="feed-chip">Top</span>
+                <span class="feed-chip">Discussao</span>
+            </div>
+        </div>
+
+        {% if reviews %}
+            <div class="feed-grid">
+                {% for r in reviews %}
+                <article class="feed-card">
+                    <div class="feed-head">
+                        {% if forloop.counter|divisibleby:2 %}
+                            <img class="feed-avatar" src="{% static 'img/u2.jpg' %}" alt="avatar">
+                        {% elif forloop.counter|divisibleby:3 %}
+                            <img class="feed-avatar" src="{% static 'img/u5.jpg' %}" alt="avatar">
+                        {% else %}
+                            <img class="feed-avatar" src="{% static 'img/u7.jpg' %}" alt="avatar">
+                        {% endif %}
+                        <div class="feed-user">
+                            <strong>{{ r.user_name|default:"Anonimo" }}</strong>
+                            {% if r.created_at %}<span>{{ r.created_at|date:"d/m/Y H:i" }}</span>{% endif %}
+                        </div>
+                        <span class="feed-badge">Review</span>
+                    </div>
+                    <div class="feed-media">
+                        {% if forloop.counter|divisibleby:3 %}
+                            <img src="{% static 'img/c5.jpeg' %}" alt="{{ r.wine_name }}">
+                        {% elif forloop.counter|divisibleby:2 %}
+                            <img src="{% static 'img/c9.jpg' %}" alt="{{ r.wine_name }}">
+                        {% else %}
+                            <img src="{% static 'img/c3.jpg' %}" alt="{{ r.wine_name }}">
+                        {% endif %}
+                    </div>
+                    <div class="feed-body">
+                        <a class="feed-wine" href="/wines/{{ r.wine_id }}/">{{ r.wine_name }}</a>
+                        <div class="stars" aria-label="{{ r.rating }} estrelas">
+                            {% for _ in "12345" %}
+                                <i class="star{% if forloop.counter <= r.rating %} is-on{% endif %}">&#9733;</i>
+                            {% endfor %}
+                        </div>
+                        <p>{{ r.comment }}</p>
+                    </div>
+                    <div class="feed-actions">
+                        <span class="feed-action">Gostei</span>
+                        <span class="feed-action">Responder</span>
+                        <a class="feed-action" href="/wines/{{ r.wine_id }}/">Ver vinho</a>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
         {% else %}
-        <p class="community-empty">Ainda nao ha reviews.</p>
+            <p class="feed-empty">Ainda nao ha reviews.</p>
         {% endif %}
-    </section>
+    </div>
 </section>
 
 {% endblock %}

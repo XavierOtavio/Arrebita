@@ -1,5 +1,7 @@
+import uuid
+
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 
 from .models import EventListView
 
@@ -133,6 +135,7 @@ def eventlist(request):
         else:
             event.cta_url = "#"
         event.cta_label = "Comprar bilhete" if not event.is_free else "Inscrever"
+        event.detail_slug = event.slug or str(event.event_id)
 
     params = request.GET.copy()
     params.pop("page", None)
@@ -151,3 +154,46 @@ def eventlist(request):
     }
 
     return render(request, "events-list.html", context)
+
+
+def event_detail(request, slug):
+    event = EventListView.objects.filter(slug=slug).first()
+    if not event:
+        try:
+            event_uuid = uuid.UUID(str(slug))
+        except (ValueError, TypeError):
+            event_uuid = None
+        if event_uuid:
+            event = EventListView.objects.filter(event_id=event_uuid).first()
+    if not event:
+        return get_object_or_404(EventListView, slug=slug)
+
+    title = (event.title or "").strip()
+    if title:
+        event.display_title = title
+    elif event.slug:
+        event.display_title = event.slug.replace("-", " ").title()
+    else:
+        event.display_title = f"Evento {event.event_id}"
+
+    event.format_label = "Online" if event.is_online else "Presencial"
+    event.status_label = STATUS_LABELS.get(event.status, event.status or "")
+    event.price_display = _format_price(event)
+    event.location_display = _format_location(event)
+    event.duration_display = _format_duration(event)
+    if event.is_finished:
+        event.timing_label = "Terminado"
+    elif event.is_upcoming:
+        event.timing_label = "Proximo"
+    else:
+        event.timing_label = "Em curso"
+
+    if event.price_cents is not None:
+        event.price_eur = f"{event.price_cents / 100:.2f}"
+    else:
+        event.price_eur = ""
+
+    context = {
+        "event": event,
+    }
+    return render(request, "event_detail.html", context)
