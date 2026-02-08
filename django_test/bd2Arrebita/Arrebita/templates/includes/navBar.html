@@ -9,8 +9,15 @@
             <a href="/wines" class="nav-link">Vinhos</a>
             <a href="/events" class="nav-link">Eventos</a>
             <a href="/comunidade" class="nav-link">Comunidade</a>
-            <a href="/perfil" class="nav-link">Perfil</a>
-            <a href="/backoffice" class="nav-link">Admin</a>
+            {% if request.current_user %}
+                <a href="/perfil" class="nav-link">Perfil</a>
+                <a href="/logout" class="nav-link">Sair</a>
+            {% else %}
+                <a href="/login" class="nav-link">Login</a>
+            {% endif %}
+            {% if request.can_backoffice %}
+                <a href="/backoffice" class="nav-link">Admin</a>
+            {% endif %}
         </nav>
         <button class="nav-toggle" aria-label="Abrir menu">&#9776;</button>
     </div>

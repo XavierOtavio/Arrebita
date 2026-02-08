@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Arrebita - {{ wine.name }}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/wine-detail.css' %}">
+
+<section class="wd-page">
+    <div class="wd-hero">
+        <div class="wd-media">
+            <img src="{% static 'img/arrebita_tinto.png' %}" alt="{{ wine.name }}">
+        </div>
+        <div class="wd-info">
+            <h1 class="wd-title">{{ wine.name }}</h1>
+            <div class="wd-badges">
+                {% if wine.type_label %}<span class="badge">{{ wine.type_label|title }}</span>{% endif %}
+                {% if wine.region %}<span class="badge">{{ wine.region }}</span>{% endif %}
+                {% if wine.vintage_year %}<span class="badge">{{ wine.vintage_year }}</span>{% endif %}
+            </div>
+            <div class="wd-price">EUR {{ wine.price|floatformat:2 }}</div>
+
+            <div class="wd-meta">
+                {% if wine.grape_varieties %}<p><strong>Castas:</strong> {{ wine.grape_varieties }}</p>{% endif %}
+                {% if wine.winemaker %}<p><strong>Enologo:</strong> {{ wine.winemaker }}</p>{% endif %}
+                {% if wine.alcohol_content %}<p><strong>Teor alcoolico:</strong> {{ wine.alcohol_content }}%</p>{% endif %}
+                {% if wine.serving_temperature %}<p><strong>Servir a:</strong> {{ wine.serving_temperature }} C</p>{% endif %}
+                {% if wine.bottle_capacity %}<p><strong>Capacidade:</strong> {{ wine.bottle_capacity }} L</p>{% endif %}
+            </div>
+
+            {% if wine.tasting_notes %}
+            <div class="wd-notes">
+                <h3>Notas de prova</h3>
+                <p>{{ wine.tasting_notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <section class="wd-reviews">
+        <div class="wd-reviews-header">
+            <h2>Reviews</h2>
+            <a href="/comunidade" class="btn btn-ghost">Ver comunidade</a>
+        </div>
+
+        <form method="post" class="wd-review-form">
+            {% csrf_token %}
+            <div class="wd-form-grid">
+                <div class="wd-field">
+                    <label for="user_name">Nome</label>
+                    <input id="user_name" name="user_name" type="text" placeholder="Anonimo">
+                </div>
+                <div class="wd-field">
+                    <label for="rating">Rating</label>
+                    <select id="rating" name="rating" required>
+                        <option value="">Selecionar</option>
+                        <option value="5">5</option>
+                        <option value="4">4</option>
+                        <option value="3">3</option>
+                        <option value="2">2</option>
+                        <option value="1">1</option>
+                    </select>
+                </div>
+                <div class="wd-field wd-field-full">
+                    <label for="comment">Comentario</label>
+                    <textarea id="comment" name="comment" rows="3" required></textarea>
+                </div>
+            </div>
+            {% if error %}
+            <p class="wd-error">{{ error }}</p>
+            {% endif %}
+            <button class="btn btn-primary" type="submit">Publicar</button>
+        </form>
+
+        {% if reviews %}
+        <div class="wd-review-list">
+            {% for r in reviews %}
+            <article class="wd-review">
+                <div class="wd-review-head">
+                    <strong>{{ r.user_name|default:"Anonimo" }}</strong>
+                    <div class="stars" aria-label="{{ r.rating }} estrelas">
+                        {% for _ in "12345" %}
+                            <i class="star{% if forloop.counter <= r.rating %} is-on{% endif %}">&#9733;</i>
+                        {% endfor %}
+                    </div>
+                </div>
+                <p>{{ r.comment }}</p>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="wd-empty">Ainda nao ha reviews.</p>
+        {% endif %}
+    </section>
+</section>
+
+{% endblock %}

@@ -96,7 +96,7 @@
                     {% for wine in wines %}
                         <article class="wl-card">
                             {% load static %}
-                            <a class="wl-card-media" href="#">
+                            <a class="wl-card-media" href="{% url 'wine:wine_detail' wine.wine_id %}">
                                 <img src="{% static 'img/arrebita_tinto.png' %}" alt="{{ wine.name }}">
                             </a>
 
@@ -119,9 +119,11 @@
                                     <div class="wl-price-tag">€ {{ wine.price|floatformat:2 }}</div>
                                 </div>
 
-                                <form class="wl-card-actions">
-                                    <button class="btn btn-primary btn-block" type="button">Adicionar ao Carrinho</button>
-                                </form>
+                                <div class="wl-card-actions">
+                                    <a class="btn btn-primary btn-block" href="{% url 'wine:wine_detail' wine.wine_id %}">
+                                        Ver detalhes
+                                    </a>
+                                </div>
                             </div>
                         </article>
                     {% endfor %}

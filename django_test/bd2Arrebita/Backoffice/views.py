@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 from openpyxl import Workbook, load_workbook
 
+from Accounts.models import User
 from Events.models import EventListView
 
 EVENT_STATUS_LABELS = {
@@ -1127,3 +1128,193 @@ def backoffice_event_delete(request, event_id):
         cur.execute("REFRESH MATERIALIZED VIEW public.mv_events_all;")
 
     return redirect(reverse("backoffice:backoffice_events"))
+
+
+def backoffice_users(request):
+    q = (request.GET.get("q") or "").strip()
+    role = (request.GET.get("role") or "").strip()
+
+    users_qs = User.objects.all()
+    if q:
+        users_qs = users_qs.filter(Q(full_name__icontains=q) | Q(email__icontains=q))
+    if role:
+        users_qs = users_qs.filter(role=role)
+
+    users = list(users_qs.order_by("user_id")[:500])
+    roles = list(User.objects.values_list("role", flat=True).distinct().order_by("role"))
+
+    context = {
+        "users": users,
+        "roles": roles,
+        "q": q,
+        "role": role,
+    }
+    return render(request, "users_catalogo.html", context)
+
+
+def _now_naive():
+    now = timezone.now()
+    if timezone.is_aware(now):
+        now = timezone.localtime(now).replace(tzinfo=None)
+    return now
+
+
+def backoffice_user_create(request):
+    if request.method != "POST":
+        return redirect(reverse("backoffice:backoffice_users"))
+
+    data = request.POST
+    email = (data.get("email") or "").strip()
+    full_name = (data.get("full_name") or "").strip()
+    role = (data.get("role") or "").strip()
+    password_hash = (data.get("password_hash") or "").strip()
+
+    if not email or not full_name or not role or not password_hash:
+        return redirect(reverse("backoffice:backoffice_users"))
+
+    with connection.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO public.users (email, password_hash, full_name, role, created_at)
+            VALUES (%s, %s, %s, %s, %s);
+            """,
+            [email, password_hash, full_name, role, _now_naive()],
+        )
+
+    return redirect(reverse("backoffice:backoffice_users"))
+
+
+def backoffice_user_update(request, user_id):
+    if request.method != "POST":
+        return redirect(reverse("backoffice:backoffice_users"))
+
+    data = request.POST
+    email = (data.get("email") or "").strip()
+    full_name = (data.get("full_name") or "").strip()
+    role = (data.get("role") or "").strip()
+    password_hash = (data.get("password_hash") or "").strip()
+
+    if not email or not full_name or not role:
+        return redirect(reverse("backoffice:backoffice_users"))
+
+    if password_hash:
+        sql = """
+            UPDATE public.users
+            SET email = %s,
+                password_hash = %s,
+                full_name = %s,
+                role = %s
+            WHERE user_id = %s;
+        """
+        params = [email, password_hash, full_name, role, user_id]
+    else:
+        sql = """
+            UPDATE public.users
+            SET email = %s,
+                full_name = %s,
+                role = %s
+            WHERE user_id = %s;
+        """
+        params = [email, full_name, role, user_id]
+
+    with connection.cursor() as cur:
+        cur.execute(sql, params)
+
+    return redirect(reverse("backoffice:backoffice_users"))
+
+
+def backoffice_user_access(request):
+    users = list(User.objects.order_by("full_name"))
+    selected_user_id = request.GET.get("user_id") or request.POST.get("user_id")
+    selected_user = None
+
+    if selected_user_id:
+        try:
+            selected_user = User.objects.get(user_id=int(selected_user_id))
+        except (User.DoesNotExist, ValueError, TypeError):
+            selected_user = None
+
+    permission_items = []
+    role_permissions = set()
+
+    with connection.cursor() as cur:
+        cur.execute(
+            """
+            SELECT permission, MAX(description) AS description
+            FROM public.role_permissions
+            GROUP BY permission
+            ORDER BY permission;
+            """
+        )
+        permission_items = [
+            {"permission": perm, "description": desc}
+            for perm, desc in cur.fetchall()
+        ]
+
+        if selected_user:
+            cur.execute(
+                "SELECT permission FROM public.role_permissions WHERE role = %s ORDER BY permission;",
+                [selected_user.role],
+            )
+            role_permissions = {row[0] for row in cur.fetchall()}
+
+    if request.method == "POST" and selected_user:
+        delete_permission = (request.POST.get("delete_permission") or "").strip()
+        if delete_permission:
+            with connection.cursor() as cur:
+                cur.execute(
+                    "DELETE FROM public.role_permissions WHERE permission = %s;",
+                    [delete_permission],
+                )
+            return redirect(f"{request.path}?user_id={selected_user.user_id}")
+
+        selected = set(request.POST.getlist("permissions"))
+        new_permission = (request.POST.get("new_permission") or "").strip()
+        new_description = (request.POST.get("new_description") or "").strip() or None
+
+        perm_list = request.POST.getlist("perm_list")
+        perm_desc = request.POST.getlist("perm_desc")
+        desc_map = {}
+        for perm, desc in zip(perm_list, perm_desc):
+            desc_map[perm] = (desc or "").strip() or None
+
+        if new_permission:
+            selected.add(new_permission)
+            if new_description:
+                desc_map[new_permission] = new_description
+
+        with connection.cursor() as cur:
+            for perm, desc in desc_map.items():
+                if desc:
+                    cur.execute(
+                        "UPDATE public.role_permissions SET description = %s WHERE permission = %s;",
+                        [desc, perm],
+                    )
+
+            cur.execute("DELETE FROM public.role_permissions WHERE role = %s;", [selected_user.role])
+            for perm in sorted(selected):
+                desc = desc_map.get(perm)
+                if not desc:
+                    for item in permission_items:
+                        if item["permission"] == perm:
+                            desc = item["description"]
+                            break
+                cur.execute(
+                    """
+                    INSERT INTO public.role_permissions (role, permission, description)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (role, permission) DO UPDATE
+                    SET description = COALESCE(EXCLUDED.description, role_permissions.description);
+                    """,
+                    [selected_user.role, perm, desc],
+                )
+
+        return redirect(f"{request.path}?user_id={selected_user.user_id}")
+
+    context = {
+        "users": users,
+        "selected_user": selected_user,
+        "permission_items": permission_items,
+        "role_permissions": role_permissions,
+    }
+    return render(request, "users_access.html", context)

@@ -15,7 +15,7 @@ class WineType(models.Model):
 
 
 class WineListView(models.Model):
-    wine_id = models.IntegerField(primary_key=True)
+    wine_id = models.UUIDField(primary_key=True)
     sku = models.CharField(max_length=100)
     name = models.CharField(max_length=255)
 

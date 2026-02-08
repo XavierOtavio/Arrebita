@@ -8,7 +8,7 @@ urlpatterns = [
     path(
         "",
         views.dashboard,
-        name="backoffice_dashboard",
+        name="dashboard",
     ),
 
     # Lista de vinhos (GET com filtros)
@@ -93,5 +93,33 @@ urlpatterns = [
         "events/<uuid:event_id>/delete/",
         views.backoffice_event_delete,
         name="backoffice_event_delete",
+    ),
+
+    # Lista de utilizadores (GET)
+    path(
+        "users/",
+        views.backoffice_users,
+        name="backoffice_users",
+    ),
+
+    # Criar utilizador (POST)
+    path(
+        "users/create/",
+        views.backoffice_user_create,
+        name="backoffice_user_create",
+    ),
+
+    # Atualizar utilizador (POST)
+    path(
+        "users/<int:user_id>/update/",
+        views.backoffice_user_update,
+        name="backoffice_user_update",
+    ),
+
+    # Acessos por utilizador (GET/POST)
+    path(
+        "users/access/",
+        views.backoffice_user_access,
+        name="backoffice_user_access",
     ),
 ]

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Arrebita - Perfil{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+
+<section class="profile-page">
+    <div class="profile-card">
+        <header class="profile-header">
+            <div>
+                <h1 class="profile-title">Perfil</h1>
+                <p class="profile-subtitle">Atualiza os teus dados pessoais.</p>
+            </div>
+        </header>
+
+        {% if user %}
+        <form method="post" class="profile-form">
+            {% csrf_token %}
+            <div class="profile-grid">
+                <div class="profile-field">
+                    <label for="full_name">Nome completo</label>
+                    <input id="full_name" name="full_name" type="text" value="{{ user.full_name }}" required>
+                </div>
+                <div class="profile-field">
+                    <label for="email">Email</label>
+                    <input id="email" name="email" type="email" value="{{ user.email }}" required>
+                </div>
+                <div class="profile-field">
+                    <label for="role">Role</label>
+                    <input id="role" name="role" type="text" value="{{ user.role }}" disabled>
+                </div>
+                <div class="profile-field">
+                    <label for="password_hash">Password hash (opcional)</label>
+                    <input id="password_hash" name="password_hash" type="text" placeholder="Deixa vazio para manter">
+                </div>
+            </div>
+
+            <div class="profile-actions">
+                <button class="btn btn-primary" type="submit">Guardar</button>
+            </div>
+        </form>
+        {% else %}
+        <p class="profile-empty">Nao existem utilizadores.</p>
+        {% endif %}
+    </div>
+</section>
+
+{% endblock %}

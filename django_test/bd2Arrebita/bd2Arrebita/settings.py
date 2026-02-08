@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'Arrebita.middleware.AccessControlMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -118,6 +119,14 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'Static/'
+
+# Store sessions in signed cookies to avoid dependency on django_session table.
+SESSION_ENGINE = "django.contrib.sessions.backends.signed_cookies"
+
+# MongoDB (reviews)
+MONGO_URI = "mongodb+srv://xavierotavio:admin0@arrebitacluster.xz830lk.mongodb.net/?appName=ArrebitaCluster"
+MONGO_DB_NAME = "Arrebita"
+MONGO_COLLECTION = "wine_reviews"
 STATICFILES_DIRS = [BASE_DIR / "Static"]
 
 

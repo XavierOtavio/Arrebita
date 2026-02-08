@@ -3,9 +3,10 @@ from urllib.parse import urlencode
 
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 
 from .models import WineListView, WineType
+from Arrebita.reviews import create_review, list_reviews
 
 
 def winelist(request):
@@ -140,4 +141,48 @@ def winelist(request):
     }
 
     return render(request, "wine_list.html", context)
+
+
+def wine_detail(request, wine_id):
+    wine = get_object_or_404(WineListView, wine_id=wine_id)
+
+    error = ""
+    if request.method == "POST":
+        user_name = (request.POST.get("user_name") or "").strip() or "Anonimo"
+        rating_raw = (request.POST.get("rating") or "").strip()
+        comment = (request.POST.get("comment") or "").strip()
+
+        try:
+            rating = int(rating_raw)
+        except ValueError:
+            rating = 0
+
+        if rating < 1 or rating > 5 or not comment:
+            error = "Preenche comentario e rating (1-5)."
+        else:
+            try:
+                create_review(
+                    wine_id=wine.wine_id,
+                    wine_name=wine.name,
+                    user_name=user_name,
+                    rating=rating,
+                    comment=comment,
+                )
+                return redirect(request.path)
+            except RuntimeError:
+                error = "Erro ao ligar ao MongoDB."
+
+    try:
+        reviews = list_reviews(wine_id=wine.wine_id, limit=50)
+    except RuntimeError:
+        reviews = []
+        if not error:
+            error = "Erro ao ligar ao MongoDB."
+
+    context = {
+        "wine": wine,
+        "reviews": reviews,
+        "error": error,
+    }
+    return render(request, "wine_detail.html", context)
 

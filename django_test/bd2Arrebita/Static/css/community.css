@@ -1,0 +1,118 @@
+.community-page {
+    max-width: 1100px;
+    margin: 2.5rem auto;
+    padding: 0 1.5rem 2.5rem;
+}
+
+.community-header {
+    margin-bottom: 1.5rem;
+}
+
+.community-title {
+    font-family: "Playfair Display", serif;
+    font-size: 2.2rem;
+    margin: 0 0 0.3rem;
+    color: #fafafa;
+}
+
+.community-subtitle {
+    margin: 0;
+    color: var(--muted);
+}
+
+.community-form {
+    background: #151823;
+    border: 1px solid #252834;
+    border-radius: 16px;
+    padding: 1.2rem;
+    box-shadow: var(--shadow-soft);
+    margin-bottom: 2rem;
+}
+
+.community-form h2 {
+    margin: 0 0 0.8rem;
+    color: #fafafa;
+}
+
+.community-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 0.9rem 1.2rem;
+    margin-bottom: 0.9rem;
+}
+
+.community-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.community-field label {
+    color: #f3f3f3;
+    font-weight: 500;
+}
+
+.community-field input,
+.community-field select,
+.community-field textarea {
+    border-radius: 10px;
+    border: 1px solid #252834;
+    padding: 0.55rem 0.7rem;
+    background: #0f1117;
+    color: #f5f5f5;
+}
+
+.community-field input:focus,
+.community-field select:focus,
+.community-field textarea:focus {
+    outline: none;
+    border-color: var(--dourado);
+    box-shadow: 0 0 0 2px rgba(197, 160, 90, 0.25);
+}
+
+.community-field-full {
+    grid-column: 1 / -1;
+}
+
+.community-error {
+    color: #ff9f9f;
+    margin: 0 0 0.8rem;
+}
+
+.community-feed h2 {
+    margin: 0 0 0.8rem;
+    color: #fafafa;
+}
+
+.community-list {
+    display: grid;
+    gap: 0.8rem;
+}
+
+.community-card {
+    background: #151823;
+    border: 1px solid #252834;
+    border-radius: 14px;
+    padding: 0.9rem 1rem;
+}
+
+.community-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.community-wine {
+    color: var(--muted);
+    margin-left: 0.5rem;
+}
+
+.community-card p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.community-empty {
+    color: var(--muted);
+}

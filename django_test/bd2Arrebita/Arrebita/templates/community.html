@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Arrebita - Comunidade{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/community.css' %}">
+
+<section class="community-page">
+    <header class="community-header">
+        <div>
+            <h1 class="community-title">Comunidade</h1>
+            <p class="community-subtitle">Partilha reviews e descobre opinioes.</p>
+        </div>
+    </header>
+
+    <section class="community-form">
+        <h2>Publicar review</h2>
+        <form method="post">
+            {% csrf_token %}
+            <div class="community-grid">
+                <div class="community-field">
+                    <label for="wine_id">Vinho</label>
+                    <select id="wine_id" name="wine_id" required>
+                        <option value="">Selecionar vinho</option>
+                        {% for w in wines %}
+                        <option value="{{ w.wine_id }}">{{ w.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="community-field">
+                    <label for="user_name">Nome</label>
+                    <input id="user_name" name="user_name" type="text" placeholder="Anonimo">
+                </div>
+                <div class="community-field">
+                    <label for="rating">Rating</label>
+                    <select id="rating" name="rating" required>
+                        <option value="">Selecionar</option>
+                        <option value="5">5</option>
+                        <option value="4">4</option>
+                        <option value="3">3</option>
+                        <option value="2">2</option>
+                        <option value="1">1</option>
+                    </select>
+                </div>
+                <div class="community-field community-field-full">
+                    <label for="comment">Comentario</label>
+                    <textarea id="comment" name="comment" rows="3" required></textarea>
+                </div>
+            </div>
+            {% if error %}
+            <p class="community-error">{{ error }}</p>
+            {% endif %}
+            <button class="btn btn-primary" type="submit">Publicar</button>
+        </form>
+    </section>
+
+    <section class="community-feed">
+        <h2>Feed</h2>
+        {% if reviews %}
+        <div class="community-list">
+            {% for r in reviews %}
+            <article class="community-card">
+                <div class="community-card-head">
+                    <div>
+                        <strong>{{ r.user_name|default:"Anonimo" }}</strong>
+                        <span class="community-wine">
+                            em <a href="/wines/{{ r.wine_id }}/">{{ r.wine_name }}</a>
+                        </span>
+                    </div>
+                    <div class="stars" aria-label="{{ r.rating }} estrelas">
+                        {% for _ in "12345" %}
+                            <i class="star{% if forloop.counter <= r.rating %} is-on{% endif %}">&#9733;</i>
+                        {% endfor %}
+                    </div>
+                </div>
+                <p>{{ r.comment }}</p>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="community-empty">Ainda nao ha reviews.</p>
+        {% endif %}
+    </section>
+</section>
+
+{% endblock %}

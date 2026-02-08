@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static '/css/backoffice.css' %}">
+
+<section class="bo-wrapper">
+    <header class="bo-header">
+        <div class="bo-header-left">
+            <h1 class="bo-title">Utilizadores</h1>
+            <p class="bo-subtitle">Gestao de contas e perfis.</p>
+        </div>
+
+        <div class="bo-header-badge">
+            <span class="bo-dot"></span>
+            Ambiente de desenvolvimento
+        </div>
+    </header>
+
+    <section class="bo-section">
+        <h2 class="bo-section-title">Filtrar utilizadores</h2>
+
+        <form method="get" class="bo-filters-form">
+            <div class="bo-filters-grid">
+                <div class="bo-field">
+                    <label for="q">Pesquisa</label>
+                    <input type="text" id="q" name="q" placeholder="Nome ou email" value="{{ q }}">
+                </div>
+
+                <div class="bo-field">
+                    <label for="role">Role</label>
+                    <input id="role" name="role" list="role-options" value="{{ role }}">
+                    <datalist id="role-options">
+                        {% for r in roles %}
+                        <option value="{{ r }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+            </div>
+
+            <div class="bo-filters-actions">
+                <button type="submit" class="bo-btn-primary">Aplicar filtros</button>
+                <a href="{% url 'backoffice:backoffice_users' %}" class="bo-btn-secondary">Limpar</a>
+            </div>
+        </form>
+    </section>
+
+    <section class="bo-section">
+        <div class="bo-section-header">
+            <h2 class="bo-section-title">Lista de utilizadores</h2>
+            <button class="bo-btn-primary" data-modal-target="#modal-create-user">
+                + Adicionar utilizador
+            </button>
+        </div>
+
+        {% if users %}
+        <div class="bo-table-wrapper">
+            <table class="bo-table">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Criado em</th>
+                    <th>Acoes</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u.user_id }}</td>
+                    <td>{{ u.full_name }}</td>
+                    <td>{{ u.email }}</td>
+                    <td>{{ u.role }}</td>
+                    <td>{{ u.created_at|date:"d/m/Y" }}</td>
+                    <td class="bo-actions">
+                        <button class="bo-link" data-modal-target="#modal-edit-{{ u.user_id }}">
+                            Editar
+                        </button>
+                        <a class="bo-link" href="{% url 'backoffice:backoffice_user_access' %}?user_id={{ u.user_id }}">
+                            Acessos
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="bo-empty">Nenhum utilizador encontrado.</p>
+        {% endif %}
+    </section>
+
+    <section id="modal-create-user" class="bo-modal" hidden>
+        <div class="bo-modal-content">
+            <header class="bo-modal-header">
+                <h3>Novo utilizador</h3>
+            </header>
+
+            <form method="post" action="{% url 'backoffice:backoffice_user_create' %}" class="bo-form">
+                {% csrf_token %}
+                <div class="bo-form-grid">
+                    <div class="bo-field">
+                        <label>Nome</label>
+                        <input type="text" name="full_name" required>
+                    </div>
+                    <div class="bo-field">
+                        <label>Email</label>
+                        <input type="email" name="email" required>
+                    </div>
+                    <div class="bo-field">
+                        <label>Role</label>
+                        <input type="text" name="role" list="role-options-create" required>
+                        <datalist id="role-options-create">
+                            {% for r in roles %}
+                            <option value="{{ r }}"></option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="bo-field">
+                        <label>Password hash</label>
+                        <input type="text" name="password_hash" required>
+                    </div>
+                </div>
+
+                <footer class="bo-modal-footer">
+                    <button class="bo-btn-primary">Guardar</button>
+                    <button type="button" class="bo-btn-secondary" data-modal-close="#modal-create-user">
+                        Cancelar
+                    </button>
+                </footer>
+            </form>
+        </div>
+    </section>
+
+    {% for u in users %}
+    <section id="modal-edit-{{ u.user_id }}" class="bo-modal" hidden>
+        <div class="bo-modal-content">
+            <header class="bo-modal-header">
+                <h3>Editar utilizador</h3>
+            </header>
+
+            <form method="post"
+                  action="{% url 'backoffice:backoffice_user_update' u.user_id %}"
+                  class="bo-form">
+                {% csrf_token %}
+                <div class="bo-form-grid">
+                    <div class="bo-field">
+                        <label>Nome</label>
+                        <input type="text" name="full_name" value="{{ u.full_name }}" required>
+                    </div>
+                    <div class="bo-field">
+                        <label>Email</label>
+                        <input type="email" name="email" value="{{ u.email }}" required>
+                    </div>
+                    <div class="bo-field">
+                        <label>Role</label>
+                        <input type="text" name="role" list="role-options-edit" value="{{ u.role }}" required>
+                        <datalist id="role-options-edit">
+                            {% for r in roles %}
+                            <option value="{{ r }}"></option>
+                            {% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="bo-field">
+                        <label>Password hash (opcional)</label>
+                        <input type="text" name="password_hash" placeholder="Deixa vazio para manter">
+                    </div>
+                </div>
+
+                <footer class="bo-modal-footer">
+                    <button class="bo-btn-primary">Guardar alteracoes</button>
+                    <button type="button" class="bo-btn-secondary" data-modal-close="#modal-edit-{{ u.user_id }}">
+                        Cancelar
+                    </button>
+                </footer>
+            </form>
+        </div>
+    </section>
+    {% endfor %}
+</section>
+
+<script>
+    document.addEventListener("click", function (e) {
+        const targetOpen = e.target.getAttribute("data-modal-target");
+        if (targetOpen) {
+            const el = document.querySelector(targetOpen);
+            if (el) el.hidden = false;
+        }
+        const targetClose = e.target.getAttribute("data-modal-close");
+        if (targetClose) {
+            const el = document.querySelector(targetClose);
+            if (el) el.hidden = true;
+        }
+    });
+</script>
+
+{% endblock %}

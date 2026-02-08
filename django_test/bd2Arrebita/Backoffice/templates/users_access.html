@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static '/css/backoffice.css' %}">
+
+<section class="bo-wrapper">
+    <header class="bo-header">
+        <div class="bo-header-left">
+            <h1 class="bo-title">Acessos</h1>
+            <p class="bo-subtitle">Gerir permissoes por utilizador (baseado na role).</p>
+        </div>
+
+        <div class="bo-header-badge">
+            <span class="bo-dot"></span>
+            Ambiente de desenvolvimento
+        </div>
+    </header>
+
+    <section class="bo-section">
+        <h2 class="bo-section-title">Selecionar utilizador</h2>
+        <form method="get" class="bo-filters-form">
+            <div class="bo-filters-grid">
+                <div class="bo-field">
+                    <label for="user_id">Utilizador</label>
+                    <select id="user_id" name="user_id">
+                        <option value="">Escolhe um utilizador</option>
+                        {% for u in users %}
+                        <option value="{{ u.user_id }}"
+                                {% if selected_user and selected_user.user_id == u.user_id %}selected{% endif %}>
+                            {{ u.full_name }} ({{ u.email }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="bo-filters-actions">
+                <button type="submit" class="bo-btn-primary">Carregar</button>
+                <a href="{% url 'backoffice:backoffice_users' %}" class="bo-btn-secondary">Voltar</a>
+            </div>
+        </form>
+    </section>
+
+    {% if selected_user %}
+    <section class="bo-section">
+        <div class="bo-section-header">
+            <h2 class="bo-section-title">Permissoes de {{ selected_user.full_name }}</h2>
+            <span class="bo-env-badge">Role: {{ selected_user.role }}</span>
+        </div>
+
+        <form method="post" class="bo-filters-form">
+            {% csrf_token %}
+            <input type="hidden" name="user_id" value="{{ selected_user.user_id }}">
+            <div class="bo-filters-grid">
+
+            <div class="bo-field">
+                <label for="new_permission">Nova permissao</label>
+                <input id="new_permission" name="new_permission" type="text" placeholder="ex: backoffice:backoffice_users">
+            </div>
+
+            <div class="bo-field">
+                <label for="new_description">Descricao (opcional)</label>
+            <input id="new_description" name="new_description" type="text" placeholder="Permite ver a lista de utilizadores">
+            </div>
+        </div>
+            <div class="bo-filters-grid">
+                <div class="bo-field bo-field-full">
+                    <label>Permissoes existentes</label>
+                    <div class="bo-table-wrapper">
+                        <table class="bo-table access-table">
+                            <thead>
+                            <tr>
+                                <th></th>
+                                <th>Permissao</th>
+                                <th>Descricao</th>
+                                <th></th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            {% for item in permission_items %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox"
+                                           name="permissions"
+                                           value="{{ item.permission }}"
+                                           {% if item.permission in role_permissions %}checked{% endif %}>
+                                </td>
+                                <td class="access-perm-cell">{{ item.permission }}</td>
+                                <td class="access-desc-cell">
+                                    <input type="hidden" name="perm_list" value="{{ item.permission }}">
+                                    <input class="access-desc-input"
+                                           type="text"
+                                           name="perm_desc"
+                                           value="{{ item.description }}"
+                                           placeholder="Sem descricao">
+                                </td>
+                                <td class="access-actions-cell">
+                                    <button class="bo-link bo-danger"
+                                            type="submit"
+                                            name="delete_permission"
+                                            value="{{ item.permission }}"
+                                            onclick="return confirm('Remover esta permissao de todas as roles?');">
+                                        Remover
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <p class="bo-footnote">
+                Nota: as permissoes sao geridas por role. Alteracoes afetam todos os utilizadores com esta role.
+            </p>
+
+            <div class="bo-filters-actions">
+                <button type="submit" class="bo-btn-primary">Guardar permissoes</button>
+                <a href="{% url 'backoffice:backoffice_users' %}" class="bo-btn-secondary">Voltar</a>
+            </div>
+        </form>
+    </section>
+    {% endif %}
+</section>
+
+{% endblock %}
