@@ -1,71 +1,80 @@
-{% extends "base.html" %}
-{% block title %}Arrebita — Home{% endblock %}
-{% block content %}
-{% load static %}
+{% extends "base.html" %} {% load static %} {% block title %}Arrebita —
+Home{%endblock %} {% block content %}
 
 <section class="hero reveal">
-    <img class="hero-bg" src="{% static 'img/banner.jpg' %}" alt="Vinho & sensualidade">
-    <div class="hero-content">
-        <h1 class="hero-title">O prazer do vinho na ponta da língua</h1>
-        <p class="hero-sub">Desperte os seus sentidos com Arrebita.</p>
-        <a href="/wines" class="btn">Descobre os Nossos Vinhos</a>
-    </div>
+  <img
+    class="hero-bg"
+    src="{% static 'img/banner.png' %}"
+    alt="Vinho & sensualidade"
+  />
+  <div class="hero-content">
+    <h1 class="hero-title">O prazer do vinho na ponta da língua</h1>
+    <p class="hero-sub">Desperte os seus sentidos com Arrebita.</p>
+    <a href="/wines" class="btn">Descobre os Nossos Vinhos</a>
+  </div>
 </section>
 
 <section class="section will-reveal">
-    <div class="container">
-        <h2 class="section-title">Destaques</h2>
-        <div class="card-grid">
-            {% for d in destaques %}
-            <article class="card">
-                <img class="card-img" src="{% static d.img %}" alt="{{ d.titulo }}">
-                <div class="card-body">
-                    <span class="pill">{{ d.tipo }}</span>
-                    <h3>{{ d.titulo }}</h3>
-                    <a href="#" class="btn btn-ghost">{{ d.cta }}</a>
-                </div>
-            </article>
-            {% endfor %}
+  <div class="container">
+    <h2 class="section-title">Destaques</h2>
+    <div class="card-grid">
+      {% for d in destaques %}
+      <article class="card">
+        <img class="card-img" src="{% static d.img %}" alt="{{ d.titulo }}" />
+        <div class="card-body">
+          <span class="pill">{{ d.tipo }}</span>
+          <h3>{{ d.titulo }}</h3>
+          <a href="#" class="btn btn-ghost">{{ d.cta }}</a>
         </div>
+      </article>
+      {% endfor %}
     </div>
+  </div>
 </section>
 
 <section class="section will-reveal">
-    <div class="container">
-        <h2 class="section-title">Da Comunidade</h2>
-        <div class="feed-grid">
-            {% for p in feed %}
-            <article class="post">
-                <img class="post-img" src="{% static p.img %}" alt="publicação">
-                <div class="post-meta">
-                    <img class="avatar" src="{% static p.avatar %}" alt="{{ p.user }}">
-                    <div>
-                        <strong>{{ p.user }}</strong>
-                        <div class="stars">{% for i in "12345"|slice:":p.rating" %}★{% endfor %}</div>
-                    </div>
-                </div>
-                <p class="post-text">{{ p.texto }}</p>
-            </article>
-            {% endfor %}
+  <div class="container">
+    <h2 class="section-title">Da Comunidade</h2>
+    <div class="feed-grid">
+      {% for p in feed %}
+      <article class="post">
+        <img class="post-img" src="{% static p.img %}" alt="publicação" />
+        <div class="post-meta">
+          <img class="avatar" src="{% static p.avatar %}" alt="{{ p.user }}" />
+          <div>
+            <strong>{{ p.user }}</strong>
+            <div class="stars">
+              {% for i in "12345"|slice:":p.rating" %}★{% endfor %}
+            </div>
+          </div>
         </div>
-        <div class="center"><a href="/comunidade" class="btn btn-ghost">Ver mais</a></div>
+        <p class="post-text">{{ p.texto }}</p>
+      </article>
+      {% endfor %}
     </div>
+    <div class="center">
+      <a href="/comunidade" class="btn btn-ghost">Ver mais</a>
+    </div>
+  </div>
 </section>
 
 <script>
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            const heroBanner = entry.target;
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        const heroBanner = entry.target;
 
-            if (entry.isIntersecting) {
-                heroBanner.classList.add('reveal');
-            } else {
-                heroBanner.classList.remove('reveal');
-            }
-        });
-    }, {threshold: 0.15});
+        if (entry.isIntersecting) {
+          heroBanner.classList.add("reveal");
+        } else {
+          heroBanner.classList.remove("reveal");
+        }
+      });
+    },
+    { threshold: 0.15 },
+  );
 
-    document.querySelectorAll('.hero').forEach((el) => observer.observe(el));
+  document.querySelectorAll(".hero").forEach((el) => observer.observe(el));
 </script>
 
 {% endblock %}

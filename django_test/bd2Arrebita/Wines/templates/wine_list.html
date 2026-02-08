@@ -14,19 +14,6 @@
     <link rel="stylesheet" href="{% static 'css/wine-list.css' %}">
 </head>
 <body class="wl-body">
-<!--<header class="wl-topbar">-->
-<!--    <div class="wl-topbar-inner">-->
-<!--        <a class="wl-brand" href="/">ARREBITA</a>-->
-<!--        <nav class="wl-nav">-->
-<!--            <a href="/">Home</a>-->
-<!--            <a class="is-active" href="{% url 'wine:winelist' %}">Vinhos</a>-->
-<!--            <a href="#">Eventos</a>-->
-<!--            <a href="#">Comunidade</a>-->
-<!--            <a href="#">Perfil</a>-->
-<!--        </nav>-->
-<!--    </div>-->
-<!--</header>-->
-
 <main class="wl-container">
     <h1 class="wl-title">Vinhos</h1>
 
@@ -98,7 +85,7 @@
                 </div>
 
                 <button class="btn btn-primary wl-apply" type="submit">Aplicar filtros</button>
-                <a href="{% url 'wine:winelist' %}" class="wl-clear">Limpar tudo</a>
+                <a href="/wines" class="wl-clear">Limpar tudo</a>
             </form>
         </aside>
 

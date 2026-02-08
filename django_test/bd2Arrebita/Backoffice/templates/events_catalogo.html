@@ -1,0 +1,495 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static '/css/backoffice.css' %}">
+
+<section class="bo-wrapper">
+    <header class="bo-header">
+        <div class="bo-header-left">
+            <h1 class="bo-title">Eventos</h1>
+            <p class="bo-subtitle">Gestao de eventos, agenda e bilhetes.</p>
+        </div>
+
+        <div class="bo-header-badge">
+            <span class="bo-dot"></span>
+            Ambiente de desenvolvimento
+        </div>
+    </header>
+
+    <section class="bo-section">
+        <h2 class="bo-section-title">Filtrar eventos</h2>
+
+        <form method="get" class="bo-filters-form">
+            <div class="bo-filters-grid">
+                <div class="bo-field">
+                    <label for="q">Pesquisa</label>
+                    <input type="text" id="q" name="q" placeholder="Titulo, slug ou cidade" value="{{ q }}">
+                </div>
+
+                <div class="bo-field">
+                    <label for="status">Estado</label>
+                    <select id="status" name="status">
+                        <option value="">Todos</option>
+                        <option value="published" {% if status == 'published' %}selected{% endif %}>Publicado</option>
+                        <option value="draft" {% if status == 'draft' %}selected{% endif %}>Rascunho</option>
+                        <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>Cancelado</option>
+                        <option value="archived" {% if status == 'archived' %}selected{% endif %}>Arquivado</option>
+                    </select>
+                </div>
+
+                <div class="bo-field">
+                    <label for="timing">Quando</label>
+                    <select id="timing" name="timing">
+                        <option value="">Todos</option>
+                        <option value="upcoming" {% if timing == 'upcoming' %}selected{% endif %}>Proximos</option>
+                        <option value="ongoing" {% if timing == 'ongoing' %}selected{% endif %}>Em curso</option>
+                        <option value="finished" {% if timing == 'finished' %}selected{% endif %}>Terminados</option>
+                    </select>
+                </div>
+
+                <div class="bo-field">
+                    <label for="mode">Formato</label>
+                    <select id="mode" name="mode">
+                        <option value="">Todos</option>
+                        <option value="online" {% if mode == 'online' %}selected{% endif %}>Online</option>
+                        <option value="onsite" {% if mode == 'onsite' %}selected{% endif %}>Presencial</option>
+                    </select>
+                </div>
+
+                <div class="bo-field">
+                    <label for="sort">Ordenar</label>
+                    <select id="sort" name="sort">
+                        <option value="-starts_at" {% if sort == '-starts_at' %}selected{% endif %}>Data (mais tarde)</option>
+                        <option value="starts_at" {% if sort == 'starts_at' %}selected{% endif %}>Data (mais cedo)</option>
+                        <option value="price" {% if sort == 'price' %}selected{% endif %}>Preco (baixo)</option>
+                        <option value="-price" {% if sort == '-price' %}selected{% endif %}>Preco (alto)</option>
+                        <option value="-created_at" {% if sort == '-created_at' %}selected{% endif %}>Mais recentes</option>
+                        <option value="created_at" {% if sort == 'created_at' %}selected{% endif %}>Mais antigos</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="bo-filters-actions">
+                <button type="submit" class="bo-btn-primary">Aplicar filtros</button>
+                <a href="{% url 'backoffice:backoffice_events' %}" class="bo-btn-secondary">Limpar</a>
+            </div>
+        </form>
+    </section>
+
+    <section class="bo-section">
+        <div class="bo-section-header">
+            <h2 class="bo-section-title">Lista de eventos</h2>
+            <div class="bo-actions">
+                <a class="bo-btn-secondary"
+                   href="{% url 'backoffice:backoffice_events_export' %}{% if export_querystring %}?{{ export_querystring }}{% endif %}">
+                    Exportar Excel
+                </a>
+                <button class="bo-btn-secondary" data-modal-target="#modal-import-events">
+                    Importar Excel
+                </button>
+                <button class="bo-btn-primary" data-modal-target="#modal-create-event">
+                    + Adicionar evento
+                </button>
+            </div>
+        </div>
+
+        {% if events %}
+        <div class="bo-table-wrapper">
+            <table class="bo-table">
+                <thead>
+                <tr>
+                    <th style="width: 22%">Titulo</th>
+                    <th>Data</th>
+                    <th style="width: 22%">Local</th>
+                    <th>Formato</th>
+                    <th>Quando</th>
+                    <th>Estado</th>
+                    <th>Preco</th>
+                    <th>Acoes</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for event in events %}
+                <tr>
+                    <td>{{ event.display_title }}</td>
+                    <td>
+                        {{ event.starts_at|date:"d/m/Y" }}
+                        {{ event.starts_at|time:"H:i" }}
+                    </td>
+                    <td>{{ event.location_display|default:"-" }}</td>
+                    <td>{{ event.format_label }}</td>
+                    <td>{{ event.timing_label }}</td>
+                    <td>{{ event.status_label }}</td>
+                    <td>{{ event.price_display }}</td>
+                    <td class="bo-actions">
+                        <button class="bo-link" data-modal-target="#modal-edit-{{ event.event_id }}">
+                            Editar
+                        </button>
+                        <form method="post" action="{% url 'backoffice:backoffice_event_delete' event.event_id %}">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="bo-link bo-danger"
+                                    onclick="return confirm('Remover este evento?');">
+                                Remover
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="bo-empty">Nenhum evento corresponde aos filtros aplicados.</p>
+        {% endif %}
+    </section>
+
+    <section id="modal-create-event" class="bo-modal" hidden>
+        <div class="bo-modal-content">
+            <header class="bo-modal-header">
+                <h3>Novo evento</h3>
+            </header>
+
+            <form method="post" action="{% url 'backoffice:backoffice_event_create' %}" class="bo-form">
+                {% csrf_token %}
+
+                <div class="bo-form-grid">
+                    <div class="bo-field">
+                        <label>Titulo</label>
+                        <input type="text" name="title" required>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Slug</label>
+                        <input type="text" name="slug" placeholder="meu-evento">
+                    </div>
+
+                    <div class="bo-field bo-field-full">
+                        <label>Resumo</label>
+                        <textarea name="summary" rows="2"></textarea>
+                    </div>
+
+                    <div class="bo-field bo-field-full">
+                        <label>Descricao</label>
+                        <textarea name="description" rows="3"></textarea>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Inicio</label>
+                        <input type="datetime-local" name="starts_at" required>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Fim</label>
+                        <input type="datetime-local" name="ends_at">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Timezone</label>
+                        <input type="text" name="timezone" value="Europe/Lisbon">
+                    </div>
+
+                    <div class="bo-field bo-field-checkbox">
+                        <label>
+                            <input type="checkbox" name="is_online">
+                            Evento online
+                        </label>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>URL online (obrigatorio se online)</label>
+                        <input type="url" name="online_url" placeholder="https://...">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Local</label>
+                        <input type="text" name="venue_name" placeholder="Auditorio, hotel, etc.">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Morada</label>
+                        <input type="text" name="address_line1">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Morada (linha 2)</label>
+                        <input type="text" name="address_line2">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Codigo postal</label>
+                        <input type="text" name="postal_code">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Cidade</label>
+                        <input type="text" name="city">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Regiao</label>
+                        <input type="text" name="region">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Pais (ISO)</label>
+                        <input type="text" name="country_code" maxlength="2" placeholder="PT">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Latitude</label>
+                        <input type="number" step="0.000001" name="latitude">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Longitude</label>
+                        <input type="number" step="0.000001" name="longitude">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Capacidade</label>
+                        <input type="number" min="0" name="capacity">
+                    </div>
+
+                    <div class="bo-field bo-field-checkbox">
+                        <label>
+                            <input type="checkbox" name="is_free">
+                            Evento gratuito
+                        </label>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Preco (EUR)</label>
+                        <input type="number" step="0.01" name="price_eur">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Moeda</label>
+                        <input type="text" name="currency_code" value="EUR">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Estado</label>
+                        <select name="status">
+                            <option value="draft">Rascunho</option>
+                            <option value="published">Publicado</option>
+                            <option value="cancelled">Cancelado</option>
+                            <option value="archived">Arquivado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <footer class="bo-modal-footer">
+                    <button class="bo-btn-primary">Guardar</button>
+                    <button type="button" class="bo-btn-secondary" data-modal-close="#modal-create-event">
+                        Cancelar
+                    </button>
+                </footer>
+            </form>
+        </div>
+    </section>
+
+    <section id="modal-import-events" class="bo-modal" hidden>
+        <div class="bo-modal-content">
+            <header class="bo-modal-header">
+                <h3>Importar eventos</h3>
+            </header>
+
+            <form method="post"
+                  action="{% url 'backoffice:backoffice_events_import' %}"
+                  enctype="multipart/form-data"
+                  class="bo-form">
+                {% csrf_token %}
+
+                <div class="bo-form-grid">
+                    <div class="bo-field bo-field-full">
+                        <label>Ficheiro Excel (.xlsx)</label>
+                        <input type="file" name="events_file" accept=".xlsx" required>
+                    </div>
+                </div>
+
+                <p class="bo-footnote">
+                    Usa o ficheiro exportado para garantir o formato das colunas.
+                </p>
+
+                <footer class="bo-modal-footer">
+                    <button class="bo-btn-primary">Importar</button>
+                    <button type="button" class="bo-btn-secondary" data-modal-close="#modal-import-events">
+                        Cancelar
+                    </button>
+                </footer>
+            </form>
+        </div>
+    </section>
+
+    {% for event in events %}
+    <section id="modal-edit-{{ event.event_id }}" class="bo-modal" hidden>
+        <div class="bo-modal-content">
+            <header class="bo-modal-header">
+                <h3>Editar evento: {{ event.display_title }}</h3>
+            </header>
+
+            <form method="post" action="{% url 'backoffice:backoffice_event_update' event.event_id %}" class="bo-form">
+                {% csrf_token %}
+
+                <div class="bo-form-grid">
+                    <div class="bo-field">
+                        <label>Titulo</label>
+                        <input type="text" name="title" value="{{ event.title }}" required>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Slug</label>
+                        <input type="text" name="slug" value="{{ event.slug }}">
+                    </div>
+
+                    <div class="bo-field bo-field-full">
+                        <label>Resumo</label>
+                        <textarea name="summary" rows="2">{{ event.summary }}</textarea>
+                    </div>
+
+                    <div class="bo-field bo-field-full">
+                        <label>Descricao</label>
+                        <textarea name="description" rows="3">{{ event.description }}</textarea>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Inicio</label>
+                        <input type="datetime-local"
+                               name="starts_at"
+                               value="{{ event.starts_at|date:'Y-m-d\\TH:i' }}"
+                               required>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Fim</label>
+                        <input type="datetime-local"
+                               name="ends_at"
+                               value="{% if event.ends_at %}{{ event.ends_at|date:'Y-m-d\\TH:i' }}{% endif %}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Timezone</label>
+                        <input type="text" name="timezone" value="{{ event.timezone|default:'Europe/Lisbon' }}">
+                    </div>
+
+                    <div class="bo-field bo-field-checkbox">
+                        <label>
+                            <input type="checkbox" name="is_online" {% if event.is_online %}checked{% endif %}>
+                            Evento online
+                        </label>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>URL online (obrigatorio se online)</label>
+                        <input type="url" name="online_url" value="{{ event.online_url }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Local</label>
+                        <input type="text" name="venue_name" value="{{ event.venue_name }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Morada</label>
+                        <input type="text" name="address_line1" value="{{ event.address_line1 }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Morada (linha 2)</label>
+                        <input type="text" name="address_line2" value="{{ event.address_line2 }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Codigo postal</label>
+                        <input type="text" name="postal_code" value="{{ event.postal_code }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Cidade</label>
+                        <input type="text" name="city" value="{{ event.city }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Regiao</label>
+                        <input type="text" name="region" value="{{ event.region }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Pais (ISO)</label>
+                        <input type="text" name="country_code" maxlength="2" value="{{ event.country_code }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Latitude</label>
+                        <input type="number" step="0.000001" name="latitude" value="{{ event.latitude }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Longitude</label>
+                        <input type="number" step="0.000001" name="longitude" value="{{ event.longitude }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Capacidade</label>
+                        <input type="number" min="0" name="capacity" value="{{ event.capacity }}">
+                    </div>
+
+                    <div class="bo-field bo-field-checkbox">
+                        <label>
+                            <input type="checkbox" name="is_free" {% if event.is_free %}checked{% endif %}>
+                            Evento gratuito
+                        </label>
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Preco (EUR)</label>
+                        <input type="number" step="0.01" name="price_eur"
+                               value="{{ event.price_eur }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Moeda</label>
+                        <input type="text" name="currency_code" value="{{ event.currency_code|default:'EUR' }}">
+                    </div>
+
+                    <div class="bo-field">
+                        <label>Estado</label>
+                        <select name="status">
+                            <option value="draft" {% if event.status == 'draft' %}selected{% endif %}>Rascunho</option>
+                            <option value="published" {% if event.status == 'published' %}selected{% endif %}>Publicado</option>
+                            <option value="cancelled" {% if event.status == 'cancelled' %}selected{% endif %}>Cancelado</option>
+                            <option value="archived" {% if event.status == 'archived' %}selected{% endif %}>Arquivado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <footer class="bo-modal-footer">
+                    <button class="bo-btn-primary">Guardar alteracoes</button>
+                    <button type="button" class="bo-btn-secondary" data-modal-close="#modal-edit-{{ event.event_id }}">
+                        Cancelar
+                    </button>
+                </footer>
+            </form>
+        </div>
+    </section>
+    {% endfor %}
+</section>
+
+<script>
+    document.addEventListener("click", function (e) {
+        const targetOpen = e.target.getAttribute("data-modal-target");
+        if (targetOpen) {
+            const el = document.querySelector(targetOpen);
+            if (el) el.hidden = false;
+        }
+        const targetClose = e.target.getAttribute("data-modal-close");
+        if (targetClose) {
+            const el = document.querySelector(targetClose);
+            if (el) el.hidden = true;
+        }
+    });
+</script>
+
+{% endblock %}

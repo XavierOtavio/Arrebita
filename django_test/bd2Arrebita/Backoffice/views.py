@@ -1,7 +1,25 @@
+from decimal import Decimal
+from io import BytesIO
+import datetime as dt
+import uuid
+
 from django.db import connection
+from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.urls import reverse
-import uuid
+from django.utils import timezone
+from django.utils.text import slugify
+from openpyxl import Workbook, load_workbook
+
+from Events.models import EventListView
+
+EVENT_STATUS_LABELS = {
+    "draft": "Rascunho",
+    "published": "Publicado",
+    "cancelled": "Cancelado",
+    "archived": "Arquivado",
+}
 
 
 def dashboard(request):
@@ -11,6 +29,80 @@ def dashboard(request):
 def dictfetchall(cursor):
     cols = [col[0] for col in cursor.description]
     return [dict(zip(cols, row)) for row in cursor.fetchall()]
+
+
+def _format_event_price(event):
+    if event.is_free:
+        return "Gratuito"
+    if event.price_cents is None:
+        return "Preco a definir"
+    currency = (event.currency_code or "EUR").strip() or "EUR"
+    return f"{currency} {event.price_cents / 100:.2f}"
+
+
+def _format_event_location(event):
+    if event.is_online:
+        return "Online"
+    parts = []
+    if event.venue_name:
+        parts.append(event.venue_name)
+    city_parts = [event.city, event.region, event.country_code]
+    city_line = ", ".join([part for part in city_parts if part])
+    if city_line:
+        parts.append(city_line)
+    return " - ".join(parts)
+
+
+def _events_queryset_from_request(request):
+    q = (request.GET.get("q") or "").strip()
+    status = (request.GET.get("status") or "").strip()
+    timing = (request.GET.get("timing") or "").strip()
+    mode = (request.GET.get("mode") or "").strip()
+    sort = (request.GET.get("sort") or "").strip()
+
+    events_qs = EventListView.objects.all()
+
+    if q:
+        events_qs = events_qs.filter(
+            Q(title__icontains=q)
+            | Q(slug__icontains=q)
+            | Q(city__icontains=q)
+            | Q(venue_name__icontains=q)
+        )
+
+    if status:
+        events_qs = events_qs.filter(status=status)
+
+    if timing == "upcoming":
+        events_qs = events_qs.filter(is_upcoming=True)
+    elif timing == "finished":
+        events_qs = events_qs.filter(is_finished=True)
+    elif timing == "ongoing":
+        events_qs = events_qs.filter(is_upcoming=False, is_finished=False)
+
+    if mode == "online":
+        events_qs = events_qs.filter(is_online=True)
+    elif mode == "onsite":
+        events_qs = events_qs.filter(is_online=False)
+
+    allowed_sorts = {
+        "starts_at": "starts_at",
+        "-starts_at": "-starts_at",
+        "price": "price_cents",
+        "-price": "-price_cents",
+        "created_at": "created_at",
+        "-created_at": "-created_at",
+    }
+    events_qs = events_qs.order_by(allowed_sorts.get(sort, "-starts_at"))
+
+    filters = {
+        "q": q,
+        "status": status,
+        "timing": timing,
+        "mode": mode,
+        "sort": sort,
+    }
+    return events_qs, filters
 
 
 def backoffice_wines(request):
@@ -275,3 +367,763 @@ def backoffice_wine_image_delete(request, wine_id, image_id):
         )
 
     return redirect(reverse("backoffice:backoffice_wines"))
+
+
+def backoffice_events(request):
+    events_qs, filters = _events_queryset_from_request(request)
+
+    events = list(events_qs[:200])
+    for event in events:
+        title = (event.title or "").strip()
+        slug = (event.slug or "").strip()
+        if title:
+            event.display_title = title
+        elif slug:
+            event.display_title = slug.replace("-", " ").title()
+        else:
+            event.display_title = f"Evento {event.event_id}"
+
+        event.format_label = "Online" if event.is_online else "Presencial"
+        event.price_display = _format_event_price(event)
+        event.location_display = _format_event_location(event)
+        event.status_label = EVENT_STATUS_LABELS.get(event.status, event.status or "")
+        if event.price_cents is not None:
+            event.price_eur = f"{event.price_cents / 100:.2f}"
+        else:
+            event.price_eur = ""
+
+        if event.is_finished:
+            event.timing_label = "Terminado"
+        elif event.is_upcoming:
+            event.timing_label = "Proximo"
+        else:
+            event.timing_label = "Em curso"
+
+    params = request.GET.copy()
+    export_querystring = params.urlencode()
+
+    context = {
+        "events": events,
+        "export_querystring": export_querystring,
+        **filters,
+    }
+    return render(request, "events_catalogo.html", context)
+
+
+def backoffice_event_create(request):
+    if request.method != "POST":
+        return redirect(reverse("backoffice:backoffice_events"))
+
+    data = request.POST
+
+    def to_int(value):
+        value = (value or "").strip()
+        return int(value) if value else None
+
+    def to_float(value):
+        value = (value or "").strip()
+        return float(value) if value else None
+
+    title = (data.get("title") or "").strip()
+    slug = (data.get("slug") or "").strip()
+    if not slug and title:
+        slug = slugify(title)
+
+    if not title or not slug:
+        return redirect(reverse("backoffice:backoffice_events"))
+
+    summary = (data.get("summary") or "").strip() or None
+    description = (data.get("description") or "").strip() or None
+
+    is_online = data.get("is_online") == "on"
+    online_url = (data.get("online_url") or "").strip() or None
+    if not is_online:
+        online_url = None
+
+    venue_name = (data.get("venue_name") or "").strip() or None
+    address_line1 = (data.get("address_line1") or "").strip() or None
+    address_line2 = (data.get("address_line2") or "").strip() or None
+    postal_code = (data.get("postal_code") or "").strip() or None
+    city = (data.get("city") or "").strip() or None
+    region = (data.get("region") or "").strip() or None
+    country_code = (data.get("country_code") or "").strip() or None
+
+    latitude = to_float(data.get("latitude"))
+    longitude = to_float(data.get("longitude"))
+
+    starts_at = (data.get("starts_at") or "").strip()
+    ends_at = (data.get("ends_at") or "").strip() or None
+    timezone_name = (data.get("timezone") or "").strip() or "Europe/Lisbon"
+
+    capacity = to_int(data.get("capacity"))
+    is_free = data.get("is_free") == "on"
+
+    price_value = to_float(data.get("price_eur"))
+    price_cents = int(round(price_value * 100)) if price_value is not None else None
+    currency_code = (data.get("currency_code") or "EUR").strip() or "EUR"
+
+    if is_free:
+        price_cents = None
+        currency_code = None
+
+    status = (data.get("status") or "draft").strip()
+    published_at = timezone.now() if status == "published" else None
+
+    if not starts_at:
+        return redirect(reverse("backoffice:backoffice_events"))
+
+    if is_online and not online_url:
+        return redirect(reverse("backoffice:backoffice_events"))
+
+    with connection.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO public.events (
+                title,
+                slug,
+                summary,
+                description,
+                is_online,
+                online_url,
+                venue_name,
+                address_line1,
+                address_line2,
+                postal_code,
+                city,
+                region,
+                country_code,
+                latitude,
+                longitude,
+                starts_at,
+                ends_at,
+                timezone,
+                capacity,
+                price_cents,
+                currency_code,
+                is_free,
+                status,
+                published_at
+            ) VALUES (
+                %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s
+            );
+            """,
+            [
+                title,
+                slug,
+                summary,
+                description,
+                is_online,
+                online_url,
+                venue_name,
+                address_line1,
+                address_line2,
+                postal_code,
+                city,
+                region,
+                country_code,
+                latitude,
+                longitude,
+                starts_at,
+                ends_at,
+                timezone_name,
+                capacity,
+                price_cents,
+                currency_code,
+                is_free,
+                status,
+                published_at,
+            ],
+        )
+        cur.execute("REFRESH MATERIALIZED VIEW public.mv_events_all;")
+
+    return redirect(reverse("backoffice:backoffice_events"))
+
+
+def backoffice_event_update(request, event_id):
+    if request.method != "POST":
+        return redirect(reverse("backoffice:backoffice_events"))
+
+    data = request.POST
+
+    def to_int(value):
+        value = (value or "").strip()
+        return int(value) if value else None
+
+    def to_float(value):
+        value = (value or "").strip()
+        return float(value) if value else None
+
+    title = (data.get("title") or "").strip()
+    slug = (data.get("slug") or "").strip()
+    if not slug and title:
+        slug = slugify(title)
+
+    if not title or not slug:
+        return redirect(reverse("backoffice:backoffice_events"))
+
+    summary = (data.get("summary") or "").strip() or None
+    description = (data.get("description") or "").strip() or None
+
+    is_online = data.get("is_online") == "on"
+    online_url = (data.get("online_url") or "").strip() or None
+    if not is_online:
+        online_url = None
+
+    venue_name = (data.get("venue_name") or "").strip() or None
+    address_line1 = (data.get("address_line1") or "").strip() or None
+    address_line2 = (data.get("address_line2") or "").strip() or None
+    postal_code = (data.get("postal_code") or "").strip() or None
+    city = (data.get("city") or "").strip() or None
+    region = (data.get("region") or "").strip() or None
+    country_code = (data.get("country_code") or "").strip().upper() or None
+
+    latitude = to_float(data.get("latitude"))
+    longitude = to_float(data.get("longitude"))
+
+    starts_at = (data.get("starts_at") or "").strip()
+    ends_at = (data.get("ends_at") or "").strip() or None
+    timezone_name = (data.get("timezone") or "").strip() or "Europe/Lisbon"
+
+    capacity = to_int(data.get("capacity"))
+    is_free = data.get("is_free") == "on"
+
+    price_value = to_float(data.get("price_eur"))
+    price_cents = int(round(price_value * 100)) if price_value is not None else None
+    currency_code = (data.get("currency_code") or "EUR").strip() or "EUR"
+
+    if is_free:
+        price_cents = None
+        currency_code = None
+
+    status = (data.get("status") or "draft").strip()
+
+    if not starts_at:
+        return redirect(reverse("backoffice:backoffice_events"))
+
+    if is_online and not online_url:
+        return redirect(reverse("backoffice:backoffice_events"))
+
+    with connection.cursor() as cur:
+        cur.execute(
+            """
+            UPDATE public.events
+            SET title = %s,
+                slug = %s,
+                summary = %s,
+                description = %s,
+                is_online = %s,
+                online_url = %s,
+                venue_name = %s,
+                address_line1 = %s,
+                address_line2 = %s,
+                postal_code = %s,
+                city = %s,
+                region = %s,
+                country_code = %s,
+                latitude = %s,
+                longitude = %s,
+                starts_at = %s,
+                ends_at = %s,
+                timezone = %s,
+                capacity = %s,
+                price_cents = %s,
+                currency_code = %s,
+                is_free = %s,
+                status = %s,
+                published_at = CASE
+                    WHEN %s = 'published' THEN COALESCE(published_at, now())
+                    ELSE NULL
+                END,
+                updated_at = now()
+            WHERE event_id = %s;
+            """,
+            [
+                title,
+                slug,
+                summary,
+                description,
+                is_online,
+                online_url,
+                venue_name,
+                address_line1,
+                address_line2,
+                postal_code,
+                city,
+                region,
+                country_code,
+                latitude,
+                longitude,
+                starts_at,
+                ends_at,
+                timezone_name,
+                capacity,
+                price_cents,
+                currency_code,
+                is_free,
+                status,
+                status,
+                event_id,
+            ],
+        )
+        cur.execute("REFRESH MATERIALIZED VIEW public.mv_events_all;")
+
+    return redirect(reverse("backoffice:backoffice_events"))
+
+
+def backoffice_events_export(request):
+    events_qs, _filters = _events_queryset_from_request(request)
+    events = list(events_qs[:2000])
+
+    headers = [
+        "event_id",
+        "title",
+        "slug",
+        "summary",
+        "description",
+        "is_online",
+        "online_url",
+        "venue_name",
+        "address_line1",
+        "address_line2",
+        "postal_code",
+        "city",
+        "region",
+        "country_code",
+        "latitude",
+        "longitude",
+        "starts_at",
+        "ends_at",
+        "timezone",
+        "capacity",
+        "price_cents",
+        "price_eur",
+        "currency_code",
+        "is_free",
+        "status",
+        "published_at",
+        "created_at",
+        "updated_at",
+    ]
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Eventos"
+    ws.append(headers)
+
+    def to_excel_datetime(value):
+        if not value:
+            return None
+        if timezone.is_aware(value):
+            value = timezone.localtime(value)
+            return value.replace(tzinfo=None)
+        return value
+
+    for event in events:
+        price_eur = f"{event.price_cents / 100:.2f}" if event.price_cents is not None else ""
+        row = [
+            str(event.event_id),
+            event.title,
+            event.slug,
+            event.summary,
+            event.description,
+            event.is_online,
+            event.online_url,
+            event.venue_name,
+            event.address_line1,
+            event.address_line2,
+            event.postal_code,
+            event.city,
+            event.region,
+            event.country_code,
+            float(event.latitude) if isinstance(event.latitude, Decimal) else event.latitude,
+            float(event.longitude) if isinstance(event.longitude, Decimal) else event.longitude,
+            to_excel_datetime(event.starts_at),
+            to_excel_datetime(event.ends_at),
+            event.timezone,
+            event.capacity,
+            event.price_cents,
+            price_eur,
+            event.currency_code,
+            event.is_free,
+            event.status,
+            to_excel_datetime(event.published_at),
+            to_excel_datetime(event.created_at),
+            to_excel_datetime(event.updated_at),
+        ]
+        ws.append(row)
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    response["Content-Disposition"] = 'attachment; filename="events-export.xlsx"'
+    return response
+
+
+def backoffice_events_import(request):
+    if request.method != "POST":
+        return redirect(reverse("backoffice:backoffice_events"))
+
+    upload = request.FILES.get("events_file")
+    if not upload:
+        return redirect(reverse("backoffice:backoffice_events"))
+
+    wb = load_workbook(upload, data_only=True)
+    ws = wb.active
+
+    rows = list(ws.iter_rows(values_only=True))
+    if not rows:
+        return redirect(reverse("backoffice:backoffice_events"))
+
+    def normalize_header(value):
+        if value is None:
+            return ""
+        return str(value).strip().lower().replace(" ", "_")
+
+    headers = [normalize_header(h) for h in rows[0]]
+    header_map = {name: idx for idx, name in enumerate(headers) if name}
+
+    def cell(row, key):
+        idx = header_map.get(key)
+        if idx is None or idx >= len(row):
+            return None
+        return row[idx]
+
+    def parse_bool(value):
+        if isinstance(value, bool):
+            return value
+        if value is None:
+            return False
+        if isinstance(value, (int, float)):
+            return value != 0
+        value = str(value).strip().lower()
+        return value in {"1", "true", "yes", "y", "sim"}
+
+    def parse_datetime(value):
+        if value is None or value == "":
+            return None
+        if isinstance(value, dt.datetime):
+            return value
+        if isinstance(value, dt.date):
+            return dt.datetime.combine(value, dt.time(0, 0))
+        text = str(value).strip()
+        try:
+            return dt.datetime.fromisoformat(text)
+        except ValueError:
+            return None
+
+    def to_float(value):
+        if value in ("", None):
+            return None
+        if isinstance(value, (int, float, Decimal)):
+            return float(value)
+        text = str(value).strip().replace(",", ".")
+        try:
+            return float(text)
+        except ValueError:
+            return None
+
+    def parse_uuid(value):
+        if value in ("", None):
+            return None
+        try:
+            return uuid.UUID(str(value))
+        except (ValueError, TypeError):
+            return None
+
+    for row in rows[1:]:
+        if row is None or all(cell is None for cell in row):
+            continue
+
+        title = (cell(row, "title") or "").strip()
+        slug = (cell(row, "slug") or "").strip()
+        if not slug and title:
+            slug = slugify(title)
+
+        if not title or not slug:
+            continue
+
+        summary = (cell(row, "summary") or "").strip() or None
+        description = (cell(row, "description") or "").strip() or None
+
+        event_id = parse_uuid(cell(row, "event_id"))
+
+        is_online = parse_bool(cell(row, "is_online"))
+        online_url = (cell(row, "online_url") or "").strip() or None
+        if not is_online:
+            online_url = None
+
+        if is_online and not online_url:
+            continue
+
+        venue_name = (cell(row, "venue_name") or "").strip() or None
+        address_line1 = (cell(row, "address_line1") or "").strip() or None
+        address_line2 = (cell(row, "address_line2") or "").strip() or None
+        postal_code = (cell(row, "postal_code") or "").strip() or None
+        city = (cell(row, "city") or "").strip() or None
+        region = (cell(row, "region") or "").strip() or None
+        country_code = (cell(row, "country_code") or "").strip().upper() or None
+
+        latitude = to_float(cell(row, "latitude"))
+        longitude = to_float(cell(row, "longitude"))
+
+        starts_at = parse_datetime(cell(row, "starts_at"))
+        ends_at = parse_datetime(cell(row, "ends_at"))
+        timezone_name = (cell(row, "timezone") or "").strip() or "Europe/Lisbon"
+
+        capacity_value = to_float(cell(row, "capacity"))
+        capacity = int(capacity_value) if capacity_value is not None else None
+
+        is_free = parse_bool(cell(row, "is_free"))
+
+        price_cents = to_float(cell(row, "price_cents"))
+        if price_cents is None:
+            price_eur = to_float(cell(row, "price_eur"))
+            if price_eur is not None:
+                price_cents = int(round(price_eur * 100))
+            else:
+                price_cents = None
+        else:
+            price_cents = int(round(price_cents))
+
+        currency_code = (cell(row, "currency_code") or "EUR").strip() or "EUR"
+        if is_free:
+            price_cents = None
+            currency_code = None
+
+        status = (cell(row, "status") or "draft").strip()
+
+        if not starts_at:
+            continue
+
+        published_at = timezone.now() if status == "published" else None
+
+        params_common = [
+            title,
+            slug,
+            summary,
+            description,
+            is_online,
+            online_url,
+            venue_name,
+            address_line1,
+            address_line2,
+            postal_code,
+            city,
+            region,
+            country_code,
+            latitude,
+            longitude,
+            starts_at,
+            ends_at,
+            timezone_name,
+            capacity,
+            price_cents,
+            currency_code,
+            is_free,
+            status,
+            published_at,
+        ]
+
+        with connection.cursor() as cur:
+            if event_id:
+                cur.execute(
+                    """
+                    UPDATE public.events
+                    SET title = %s,
+                        slug = %s,
+                        summary = %s,
+                        description = %s,
+                        is_online = %s,
+                        online_url = %s,
+                        venue_name = %s,
+                        address_line1 = %s,
+                        address_line2 = %s,
+                        postal_code = %s,
+                        city = %s,
+                        region = %s,
+                        country_code = %s,
+                        latitude = %s,
+                        longitude = %s,
+                        starts_at = %s,
+                        ends_at = %s,
+                        timezone = %s,
+                        capacity = %s,
+                        price_cents = %s,
+                        currency_code = %s,
+                        is_free = %s,
+                        status = %s,
+                        published_at = CASE
+                            WHEN %s = 'published' THEN COALESCE(published_at, now())
+                            ELSE NULL
+                        END,
+                        updated_at = now()
+                    WHERE event_id = %s;
+                    """,
+                    [
+                        *params_common[:-1],
+                        status,
+                        event_id,
+                    ],
+                )
+                if cur.rowcount == 0:
+                    cur.execute(
+                        """
+                        INSERT INTO public.events (
+                            event_id,
+                            title,
+                            slug,
+                            summary,
+                            description,
+                            is_online,
+                            online_url,
+                            venue_name,
+                            address_line1,
+                            address_line2,
+                            postal_code,
+                            city,
+                            region,
+                            country_code,
+                            latitude,
+                            longitude,
+                            starts_at,
+                            ends_at,
+                            timezone,
+                            capacity,
+                            price_cents,
+                            currency_code,
+                            is_free,
+                            status,
+                            published_at
+                        ) VALUES (
+                            %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s
+                        );
+                        """,
+                        [event_id, *params_common],
+                    )
+            else:
+                cur.execute(
+                    """
+                    UPDATE public.events
+                    SET title = %s,
+                        summary = %s,
+                        description = %s,
+                        is_online = %s,
+                        online_url = %s,
+                        venue_name = %s,
+                        address_line1 = %s,
+                        address_line2 = %s,
+                        postal_code = %s,
+                        city = %s,
+                        region = %s,
+                        country_code = %s,
+                        latitude = %s,
+                        longitude = %s,
+                        starts_at = %s,
+                        ends_at = %s,
+                        timezone = %s,
+                        capacity = %s,
+                        price_cents = %s,
+                        currency_code = %s,
+                        is_free = %s,
+                        status = %s,
+                        published_at = CASE
+                            WHEN %s = 'published' THEN COALESCE(published_at, now())
+                            ELSE NULL
+                        END,
+                        updated_at = now()
+                    WHERE slug = %s;
+                    """,
+                    [
+                        title,
+                        summary,
+                        description,
+                        is_online,
+                        online_url,
+                        venue_name,
+                        address_line1,
+                        address_line2,
+                        postal_code,
+                        city,
+                        region,
+                        country_code,
+                        latitude,
+                        longitude,
+                        starts_at,
+                        ends_at,
+                        timezone_name,
+                        capacity,
+                        price_cents,
+                        currency_code,
+                        is_free,
+                        status,
+                        status,
+                        slug,
+                    ],
+                )
+                if cur.rowcount == 0:
+                    cur.execute(
+                        """
+                        INSERT INTO public.events (
+                            title,
+                            slug,
+                            summary,
+                            description,
+                            is_online,
+                            online_url,
+                            venue_name,
+                            address_line1,
+                            address_line2,
+                            postal_code,
+                            city,
+                            region,
+                            country_code,
+                            latitude,
+                            longitude,
+                            starts_at,
+                            ends_at,
+                            timezone,
+                            capacity,
+                            price_cents,
+                            currency_code,
+                            is_free,
+                            status,
+                            published_at
+                        ) VALUES (
+                            %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s
+                        );
+                        """,
+                        params_common,
+                    )
+
+    with connection.cursor() as cur:
+        cur.execute("REFRESH MATERIALIZED VIEW public.mv_events_all;")
+
+    return redirect(reverse("backoffice:backoffice_events"))
+
+
+def backoffice_event_delete(request, event_id):
+    if request.method != "POST":
+        return redirect(reverse("backoffice:backoffice_events"))
+
+    with connection.cursor() as cur:
+        cur.execute(
+            "DELETE FROM public.events WHERE event_id = %s;",
+            [event_id],
+        )
+        cur.execute("REFRESH MATERIALIZED VIEW public.mv_events_all;")
+
+    return redirect(reverse("backoffice:backoffice_events"))

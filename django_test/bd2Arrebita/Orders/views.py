@@ -20,7 +20,7 @@ def update_order(request, order_id):
 
         with connection.cursor() as cursor:
             cursor.execute("""
-                CALL public.update_order_full(
+                CALL public.update_order(
                     %s, %s, %s, %s, %s,
                     %s, %s, %s, %s
                 )

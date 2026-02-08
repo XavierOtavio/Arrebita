@@ -52,4 +52,46 @@ urlpatterns = [
         views.backoffice_wine_image_delete,
         name="backoffice_wine_image_delete",
     ),
+
+    # Lista de eventos (GET com filtros)
+    path(
+        "events/",
+        views.backoffice_events,
+        name="backoffice_events",
+    ),
+
+    # Criar novo evento (POST)
+    path(
+        "events/create/",
+        views.backoffice_event_create,
+        name="backoffice_event_create",
+    ),
+
+    # Atualizar evento (POST)
+    path(
+        "events/<uuid:event_id>/update/",
+        views.backoffice_event_update,
+        name="backoffice_event_update",
+    ),
+
+    # Exportar eventos (GET)
+    path(
+        "events/export/",
+        views.backoffice_events_export,
+        name="backoffice_events_export",
+    ),
+
+    # Importar eventos (POST)
+    path(
+        "events/import/",
+        views.backoffice_events_import,
+        name="backoffice_events_import",
+    ),
+
+    # Apagar evento (POST)
+    path(
+        "events/<uuid:event_id>/delete/",
+        views.backoffice_event_delete,
+        name="backoffice_event_delete",
+    ),
 ]
